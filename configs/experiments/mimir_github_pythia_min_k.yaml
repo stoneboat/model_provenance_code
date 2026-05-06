@@ -1,0 +1,28 @@
+experiment:
+  name: mimir_github_pythia_mink
+  phase: planned          # not yet implemented; remove this field when running
+
+model:
+  parent_model: EleutherAI/pythia-1.4b
+  use_finetuned_model: false
+
+dataset:
+  name: MIMIR GitHub
+  member_label: 1
+  nonmember_label: 0
+
+preprocessing:
+  max_words: 32
+  min_words: 8
+
+scoring:
+  primary_score: min_k_20_logprob
+  min_k_percentages: [5, 10, 20, 40]
+
+metrics:
+  primary: test_accuracy
+  diagnostics:
+    - balanced_accuracy
+    - auc
+    - tpr_at_1_fpr
+    - shard_advantage
