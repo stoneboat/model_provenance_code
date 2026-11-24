@@ -23,6 +23,9 @@ env/
 /.claude/
 /.vscode/
 
+# Local rebuttal materials
+/docs/AISTATS27_rebuttal/
+
 # Generated project artifacts
 /.cache/
 /artifacts/*
