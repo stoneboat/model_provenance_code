@@ -1,0 +1,9 @@
+checkpoint,score,score_threshold,n_per_source,member_accepted,control_accepted,signed_advantage,absolute_advantage,per_score_cutoff,per_score_positive,reference_two_target_cutoff,above_two_target_cutoff,shuffled_gap
+Pythia parent,min_k_20_logprob,-6.91485688,200,125,49,0.38,0.38,0.13581015157406195,True,0.14802071873007983,True,-0.035
+Pythia parent,mean_logprob,-2.1343611059999996,200,129,51,0.39,0.39,0.13581015157406195,True,0.14802071873007983,True,0.010
+BioGPT-Large,min_k_20_logprob,-16.132413082,200,198,196,0.01,0.01,0.13581015157406195,False,0.14802071873007983,False,-0.040
+BioGPT-Large,mean_logprob,-6.626947825,200,181,181,0.0,0.0,0.13581015157406195,False,0.14802071873007983,False,-0.040
+herMaster historical,min_k_20_logprob,-8.042946536999999,200,115,46,0.345,0.345,0.13581015157406195,True,0.14802071873007983,True,-0.050
+herMaster historical,mean_logprob,-2.2395187275,200,110,37,0.365,0.365,0.13581015157406195,True,0.14802071873007983,True,-0.010
+GPT-Neo current split,min_k_20_logprob,-6.598133235000001,200,106,45,0.305,0.305,0.13581015157406195,True,0.14802071873007983,True,-0.005
+GPT-Neo current split,mean_logprob,-1.9294849020000004,200,114,43,0.355,0.355,0.13581015157406195,True,0.14802071873007983,True,0.025

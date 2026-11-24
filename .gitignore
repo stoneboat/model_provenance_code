@@ -26,6 +26,9 @@ env/
 # Local rebuttal materials
 /docs/AISTATS27_rebuttal/
 
+# Local datasets
+/data/
+
 # Generated project artifacts
 /.cache/
 /artifacts/*

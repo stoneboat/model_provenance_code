@@ -1,0 +1,64 @@
+{
+  "base": [
+    "EleutherAI/pythia-1.4b",
+    "fedc38a16eea3bd36a96b906d78d11d2ce18ed79"
+  ],
+  "child": [
+    "herMaster/pythia1.4B-finetuned-on-lamini-docs",
+    "a6c699d6832bd3852c13d9c728c8599666b04c22"
+  ],
+  "step0": [
+    "EleutherAI/pythia-1.4b",
+    "ae04bdc1923b877cf65aee9da264d30555f011ab"
+  ],
+  "dataset_revision": "05bd680b81d69a7a1d38193873f1487d73e535bf",
+  "embedding_key": "gpt_neox.embed_in.weight",
+  "embedding_shape": [
+    50304,
+    2048
+  ],
+  "changed_rows": 4832,
+  "equal_final_base_rows": 45472,
+  "equal_step0_rows": 0,
+  "context_definition": "published input_ids excluding final token",
+  "splits": {
+    "train": {
+      "n_examples": 1260,
+      "exact_raw_qa_tokenizations": 1260,
+      "context_ids": 4835,
+      "changed_context_ids": 4831,
+      "unchanged_context_ids": 4,
+      "n_examples_with_unchanged_context_ids": 1,
+      "examples_with_unchanged_context_ids": [
+        980
+      ]
+    },
+    "test": {
+      "n_examples": 140,
+      "exact_raw_qa_tokenizations": 140,
+      "context_ids": 1781,
+      "changed_context_ids": 1536,
+      "unchanged_context_ids": 245,
+      "n_examples_with_unchanged_context_ids": 77
+    }
+  },
+  "unchanged_train_context_ids": [
+    362,
+    4822,
+    8294,
+    37883
+  ],
+  "changed_ids_outside_train": [
+    {
+      "id": 246,
+      "bpe": "\u0120t",
+      "decoded": " t",
+      "special": false
+    }
+  ],
+  "changed_ids_outside_train_and_test": [
+    246
+  ],
+  "test_unique_ids": 245,
+  "changed_test_unique_ids": 0
+}

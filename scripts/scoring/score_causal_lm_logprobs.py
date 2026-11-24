@@ -103,7 +103,7 @@ def score_records(
                 **({"pair_id": rec["pair_id"]} if "pair_id" in rec else {}),
                 "label": rec["label"],
                 "phase_split": rec.get("phase_split", ""),
-                "text_hash": rec["text_hash"],
+                **({"text_hash": rec["text_hash"]} if "text_hash" in rec else {}),
                 "model": model_name,
                 "num_input_tokens": len(lp) + 1,  # +1 for the unscored first token
                 "num_scored_tokens": len(lp),

@@ -1,0 +1,29 @@
+{
+  "models": {
+    "pythia": {
+      "trained_steps": 939,
+      "training_wall_seconds": 770.9304995349376,
+      "adapter_parameters": 5505024,
+      "training_peak_allocated_gib": 3.879967212677002,
+      "training_peak_reserved_gib": 6.447265625
+    },
+    "biogpt": {
+      "trained_steps": 939,
+      "training_wall_seconds": 1502.9340626510093,
+      "adapter_parameters": 8601600,
+      "training_peak_allocated_gib": 4.420121192932129,
+      "training_peak_reserved_gib": 7.03515625
+    }
+  },
+  "elapsed_gpu_pipeline_seconds": 3064.0,
+  "hourly_rate_usd": 0.4677777777777778,
+  "allocated_rental_usd": 0.39813086419753085,
+  "stage_seconds": {
+    "pythia-train": 803.0,
+    "pythia-mimir": 18.0,
+    "pythia-downstream": 235.0,
+    "biogpt-train": 1567.0,
+    "biogpt-mimir": 24.0,
+    "biogpt-downstream": 417.0
+  }
+}

@@ -78,7 +78,7 @@ def load_model_and_tokenizer(
         dtype = dtype_map.get(dtype_str, torch.float32)
 
     dev_str = str(device)
-    if "cuda" in dev_str:
+    if dev_str == "cuda":
         device_map = "auto"
     else:
         device_map = {"": device}
