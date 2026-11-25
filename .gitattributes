@@ -1,3 +1,0 @@
-# Matplotlib-generated SVG paths retain insignificant line-end spaces. Preserve
-# the byte-exact published artifacts and their recorded SHA-256 checksums.
-*.svg whitespace=-trailing-space

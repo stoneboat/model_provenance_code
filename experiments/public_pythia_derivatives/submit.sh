@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT="$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"
 cd "$ROOT"
+mkdir -p experiments/public_pythia_derivatives/logs
 
 gpu_options=()
 cpu_options=()

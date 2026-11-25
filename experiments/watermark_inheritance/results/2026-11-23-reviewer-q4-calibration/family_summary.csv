@@ -1,4 +1,0 @@
-family,independent_units,cached_audit_rows,primary_false_alarms,primary_false_alarm_frequency,holm_primary_false_alarms,holm_exact_sign_rejections,one_sided_95_percent_upper,interpretation
-independently_trained_model_controls,15,15,0,0.0,0,0,0.18103627252208462,15 distinct model-seed/shard-seed endpoint units
-fresh_S_prime_vs_S_double_prime_controls,6,6,0,0.0,0,0,0.39303776899708265,Separate six-unit shard-exchangeability family; do not pool with model controls
-checkpoint_reuse_sensitivity,15,54,0,0.0,0,0,not_applicable_correlated_rows,54 correlated checkpoint rows nested in 15 model/shard clusters

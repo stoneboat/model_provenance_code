@@ -109,30 +109,6 @@ def load_model_unit(run_dir: Path, dataset: str, checkpoint: str) -> dict:
     return unit
 
 
-def load_fresh_shard_unit(run_dir: Path, dataset: str, checkpoint: str) -> dict:
-    score_dir = run_dir / "scores" / checkpoint
-    null_dir = run_dir / "null_scores" / checkpoint
-    threshold = float(load_json(score_dir / "thresholds.json")["detectors"]["watermark"]["threshold"])
-    original = [row for row in read_jsonl(score_dir / "examples.jsonl") if row["audit_split"] == "audit"]
-    fresh = [row for row in read_jsonl(null_dir / "examples.jsonl") if row["audit_split"] == "audit"]
-    if len(original) != 8000 or len(fresh) != 8000:
-        raise ValueError(f"Expected 8,000 held-out pairs: {null_dir}")
-    if [row["pair_id"] for row in original] != [row["pair_id"] for row in fresh]:
-        raise ValueError(f"S' and S'' pair IDs are not aligned: {null_dir}")
-    unit = _unit_metadata(run_dir, "fresh_shard_control", dataset, checkpoint)
-    unit.update({
-        "threshold": threshold,
-        "pair_ids": [row["pair_id"] for row in original],
-        "first": [row["s_prime"]["z"] > threshold for row in original],
-        "second": [row["z"] > threshold for row in fresh],
-        "input_paths": [
-            str(score_dir / "examples.jsonl"), str(score_dir / "thresholds.json"),
-            str(null_dir / "examples.jsonl"),
-        ],
-    })
-    return unit
-
-
 def evaluate_decisions(first: list[bool], second: list[bool], alpha: float) -> dict:
     if not first or len(first) != len(second):
         raise ValueError("Paired decisions must be nonempty and aligned")
@@ -159,24 +135,15 @@ def evaluate_decisions(first: list[bool], second: list[bool], alpha: float) -> d
     }
 
 
-def discover_primary_units(root: Path, config: dict) -> tuple[list[dict], list[dict]]:
-    model_units = []
+def discover_primary_units(root: Path, config: dict) -> list[dict]:
+    units = []
     for dataset, checkpoint in config["primary_model_endpoints"].items():
         pattern = "unit_*" if dataset == "dolly" else "run_*"
         for run_dir in sorted((root / dataset).glob(pattern)):
-            model_units.append(load_model_unit(run_dir, dataset, checkpoint))
-    fresh_units = []
-    for dataset, checkpoint in config["fresh_shard_endpoints"].items():
-        pattern = "unit_*" if dataset == "dolly" else "run_*"
-        for run_dir in sorted((root / dataset).glob(pattern)):
-            if (run_dir / "null_scores" / checkpoint / "metrics.json").exists():
-                fresh_units.append(load_fresh_shard_unit(run_dir, dataset, checkpoint))
-    if len(model_units) != 15 or len(fresh_units) != 6:
-        raise ValueError(f"Expected 15 model controls and 6 production fresh-shard controls; got {len(model_units)} and {len(fresh_units)}")
-    model_clusters = {unit["cluster_id"] for unit in model_units}
-    if len(model_clusters) != 15:
-        raise ValueError("Primary model controls do not have 15 distinct model/shard clusters")
-    return model_units, fresh_units
+            units.append(load_model_unit(run_dir, dataset, checkpoint))
+    if len(units) != 15 or len({unit["cluster_id"] for unit in units}) != 15:
+        raise ValueError("Expected 15 distinct model/shard endpoints")
+    return units
 
 
 def primary_table(units: list[dict], alpha: float) -> list[dict]:
@@ -284,23 +251,6 @@ def sensitivity_tables(units: list[dict], config: dict) -> tuple[list[dict], lis
     return unit_rows, summary_rows
 
 
-def checkpoint_sensitivity(root: Path, config: dict) -> list[dict]:
-    """Quantify cached checkpoint repeats while retaining 15 cluster labels."""
-    units = []
-    for run_dir in sorted((root / "dolly").glob("unit_*")):
-        for checkpoint in ("C1", "C2", "C3"):
-            units.append(load_model_unit(run_dir, "dolly", checkpoint))
-    for run_dir in sorted((root / "ultrachat_controls").glob("run_*")):
-        for score_dir in sorted((run_dir / "scores").glob("UC*"), key=lambda path: int(path.name[2:])):
-            if (score_dir / "metrics.json").exists():
-                units.append(load_model_unit(run_dir, "ultrachat_controls", score_dir.name))
-    alpha = float(config["primary_alpha"])
-    rows = primary_table(units, alpha)
-    if len(rows) != 54 or len({row["cluster_id"] for row in rows}) != 15:
-        raise ValueError("Expected 54 cached checkpoint audits in 15 model/shard clusters")
-    return rows
-
-
 def _input_manifest(units: list[dict]) -> list[dict]:
     records = []
     seen = set()
@@ -317,91 +267,15 @@ def _input_manifest(units: list[dict]) -> list[dict]:
 
 def run(root: Path, output_dir: Path, config_path: Path = DEFAULT_CONFIG) -> dict:
     config = load_json(config_path)
-    model_units, fresh_units = discover_primary_units(root, config)
-    alpha = float(config["primary_alpha"])
-    model_rows = primary_table(model_units, alpha)
-    fresh_rows = primary_table(fresh_units, alpha)
-    primary_rows = model_rows + fresh_rows
-    unit_sensitivity, sensitivity_summary = sensitivity_tables(model_units + fresh_units, config)
-    checkpoint_rows = checkpoint_sensitivity(root, config)
-
-    output_dir.mkdir(parents=True, exist_ok=True)
-    _write_csv(output_dir / "independent_unit_results.csv", primary_rows)
+    units = discover_primary_units(root, config)
+    rows = primary_table(units, float(config["primary_alpha"]))
+    unit_sensitivity, sensitivity_summary = sensitivity_tables(units, config)
+    _write_csv(output_dir / "independent_unit_results.csv", rows)
     _write_csv(output_dir / "unit_clustered_sensitivity.csv", unit_sensitivity)
     _write_csv(output_dir / "sensitivity_summary.csv", sensitivity_summary)
-    _write_csv(output_dir / "checkpoint_reuse_sensitivity.csv", checkpoint_rows)
-
-    model_events = sum(row["primary_false_alarm"] for row in model_rows)
-    fresh_events = sum(row["primary_false_alarm"] for row in fresh_rows)
-    checkpoint_events = sum(row["primary_false_alarm"] for row in checkpoint_rows)
-    model_interval = clopper_pearson(model_events, len(model_rows))
-    fresh_interval = clopper_pearson(fresh_events, len(fresh_rows))
-    family_rows = [
-        {
-            "family": "independently_trained_model_controls",
-            "independent_units": len(model_rows),
-            "cached_audit_rows": len(model_rows),
-            "primary_false_alarms": model_events,
-            "primary_false_alarm_frequency": model_events / len(model_rows),
-            "holm_primary_false_alarms": sum(row["holm_primary_false_alarm"] for row in model_rows),
-            "holm_exact_sign_rejections": sum(row["holm_exact_rejection"] for row in model_rows),
-            "one_sided_95_percent_upper": model_interval["one_sided_upper"],
-            "interpretation": "15 distinct model-seed/shard-seed endpoint units",
-        },
-        {
-            "family": "fresh_S_prime_vs_S_double_prime_controls",
-            "independent_units": len(fresh_rows),
-            "cached_audit_rows": len(fresh_rows),
-            "primary_false_alarms": fresh_events,
-            "primary_false_alarm_frequency": fresh_events / len(fresh_rows),
-            "holm_primary_false_alarms": sum(row["holm_primary_false_alarm"] for row in fresh_rows),
-            "holm_exact_sign_rejections": sum(row["holm_exact_rejection"] for row in fresh_rows),
-            "one_sided_95_percent_upper": fresh_interval["one_sided_upper"],
-            "interpretation": "Separate six-unit shard-exchangeability family; do not pool with model controls",
-        },
-        {
-            "family": "checkpoint_reuse_sensitivity",
-            "independent_units": len({row["cluster_id"] for row in checkpoint_rows}),
-            "cached_audit_rows": len(checkpoint_rows),
-            "primary_false_alarms": checkpoint_events,
-            "primary_false_alarm_frequency": checkpoint_events / len(checkpoint_rows),
-            "holm_primary_false_alarms": sum(row["holm_primary_false_alarm"] for row in checkpoint_rows),
-            "holm_exact_sign_rejections": sum(row["holm_exact_rejection"] for row in checkpoint_rows),
-            "one_sided_95_percent_upper": "not_applicable_correlated_rows",
-            "interpretation": "54 correlated checkpoint rows nested in 15 model/shard clusters",
-        },
-    ]
-    _write_csv(output_dir / "family_summary.csv", family_rows)
     summary = {
-        "status": "observed_cpu_reanalysis_of_frozen_per_example_caches",
-        "config": config,
-        "primary_model_controls": model_interval,
-        "fresh_shard_controls": fresh_interval,
-        "exact_sign_test_diagnostic": {
-            "model_controls_unadjusted_rejections": sum(row["exact_sign_rejection"] for row in model_rows),
-            "model_controls_holm_rejections": sum(row["holm_exact_rejection"] for row in model_rows),
-            "fresh_shard_unadjusted_rejections": sum(row["exact_sign_rejection"] for row in fresh_rows),
-            "fresh_shard_holm_rejections": sum(row["holm_exact_rejection"] for row in fresh_rows),
-            "note": "The manuscript's prespecified verdict uses the conservative paired advantage cutoff. Exact sign-test results are retained as a diagnostic.",
-        },
-        "checkpoint_reuse": {
-            "cached_audits": len(checkpoint_rows),
-            "model_shard_clusters": len({row["cluster_id"] for row in checkpoint_rows}),
-            "primary_false_alarms_unadjusted": checkpoint_events,
-            "primary_false_alarms_bonferroni": sum(row["bonferroni_primary_false_alarm"] for row in checkpoint_rows),
-            "holm_exact_rejections": sum(row["holm_exact_rejection"] for row in checkpoint_rows),
-            "interpretation": "The 54 checkpoint rows are correlated repeats from 15 model/shard clusters, not 54 independent false-positive trials.",
-        },
-        "shared_witness_cross_model_audit": {
-            "status": "unrun",
-            "reason": "The frozen reviewer caches contain one independent shard per independently trained model. Auditing multiple independently trained models on the identical witness shard would require new model inference.",
-        },
-        "contamination": {
-            "mechanism": config["contamination_mechanism"],
-            "interpretation": "This is a fixed, non-adversarial attenuation sensitivity. It does not cover semantic contamination or independently chosen adversarial replacements.",
-        },
-        "independence": config["independence_policy"],
-        "input_manifest": _input_manifest(model_units + fresh_units),
+        "primary_model_controls": clopper_pearson(sum(row["primary_false_alarm"] for row in rows), len(rows)),
+        "input_manifest": _input_manifest(units),
     }
     write_json(output_dir / "summary.json", summary)
     return summary
@@ -412,7 +286,7 @@ def main(argv=None) -> None:
     parser.add_argument("--root", type=Path, default=Path("artifacts/watermark_inheritance/aistats27_reviewer"))
     parser.add_argument(
         "--output-dir", type=Path,
-        default=Path("experiments/watermark_inheritance/results/2026-11-23-reviewer-q4-calibration"),
+        default=Path("artifacts/watermark_inheritance/aistats27_calibration_report"),
     )
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     args = parser.parse_args(argv)

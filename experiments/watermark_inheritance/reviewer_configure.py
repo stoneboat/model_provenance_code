@@ -14,7 +14,7 @@ from .configure import base_config
 DEFAULT_STUDY = Path(__file__).parent / "configs/aistats27_false_positive.json"
 SOURCE_FILES = (
     "common.py", "configure.py", "curve_prepare.py", "curve_train.py",
-    "generate.py", "null_control.py", "prepare.py", "reviewer_configure.py",
+    "generate.py", "prepare.py", "reviewer_configure.py",
     "score.py", "train.py",
 )
 

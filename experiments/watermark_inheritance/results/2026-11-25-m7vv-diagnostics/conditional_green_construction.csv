@@ -1,5 +1,0 @@
-target,split,n_pairs,shard,top1_equals_observed,eligible,observed_green,predicted_green,observed_green_rate,predicted_green_rate
-A,first_64_construction,64,s,False,10438,8976,1912,0.8599348534201955,0.18317685380341062
-A,first_64_construction,64,s,True,2521,1381,1381,0.5477984926616422,0.5477984926616422
-A,first_64_construction,64,s_prime,False,10773,9244,2029,0.8580711036851387,0.18834122342894272
-A,first_64_construction,64,s_prime,True,2605,1411,1411,0.5416506717850288,0.5416506717850288

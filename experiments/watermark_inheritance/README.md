@@ -8,12 +8,6 @@ of the submitted paper:
 - Appendix D.1, Table 5: the UltraChat trajectories through 400,000 distinct
   examples.
 
-The implementation and results were imported from teammate repository commit
-`08237f717acd5d954b0dbd205686134843205f91`. The replaced local
-`table_09_watermark_radioactivity` package used a different teacher and prompt
-construction and was not the experiment reported in the submitted paper. In the
-paper, Table 9 is a ViT transformation experiment, not a watermark experiment.
-
 ## Experiment
 
 For each of three seeds and watermark keys, the pipeline creates 10,000 matched
@@ -51,10 +45,7 @@ All six provenance targets reject the null and all six controls fail to reject,
 matching the submitted paper. Published artifacts are versioned with the code:
 
 - [Dolly paper rows](results/2026-10-06/main_results.csv)
-- [Dolly diagnostics](results/2026-10-06/results.csv)
 - [UltraChat trajectory rows](results/2026-10-06-distinct/curve.csv)
-- [UltraChat paper summary](results/2026-10-06-distinct/advantage_vs_steps_paper.csv)
-- [UltraChat paper figure](results/2026-10-06-distinct/advantage_vs_steps_paper.pdf)
 
 ## Reproduce the Dolly experiment
 
@@ -126,51 +117,15 @@ TRITON_CACHE_DIR=.cache/triton MPLCONFIGDIR=.cache/matplotlib \
 The tests cover upstream watermark compatibility, added tokenizer tokens,
 independent paired sampling, source/pilot separation, overlap filtering,
 response masks, gradient accumulation, exact resume behavior, teacher-forcing
-alignment, deduplication, calibrated thresholds, paired inference, and paper
-figure aggregation. The GPU pilot separately validates generation quality,
+alignment, deduplication, calibrated thresholds, and paired inference. The GPU pilot separately validates generation quality,
 parameter updates, checkpoint reloads, memory use, and the aggregate token
 budget before any production job can run.
 
-## AISTATS-2027 negative controls
+## Rebuttal experiments
 
-The reviewer extension is prespecified in
-`configs/aistats27_false_positive.json`.  It adds 12 independent Dolly
-non-descendant controls and three independent UltraChat controls.  Model seeds
-and paired-shard seeds are distinct fields; only one-to-one model/shard units
-count toward false-alarm precision.  Checkpoints, cross-audits, and repeated
-subsamples sharing either component are correlated sensitivity analyses.
-
-Create immutable configs and run the cheap pilot before releasing arrays:
-
-```bash
-.venv_pace/bin/python -m experiments.watermark_inheritance.reviewer_configure
-sbatch experiments/watermark_inheritance/jobs/aistats27_false_positive_pilot.sbatch
-```
-
-After validating pilot quality, memory, throughput, and the compute estimate:
-
-```bash
-bash experiments/watermark_inheritance/submit_aistats27_controls.sh
-```
-
-The submission helper preserves the preparation/training dependencies and
-prints every job ID. All stages are resumable.
-
-The selected design is estimated at 16.2 H200 GPU-hours (planning range
-12–24) plus roughly 110 GB of checkpoints.  With zero alarms, the completed
-Dolly study's 12 independent units would give a one-sided 95% false-alarm
-upper bound of 22.1%; the three UltraChat units would give 63.2%.  These are
-modest calibration checks, not proof of a 5% population false-positive rate.
-These runs estimate false attribution across independently trained models.
-Checkpoint repeats from one model are reported as correlated diagnostics, not
-as additional independent false-positive trials.
-
-The second retained negative control adds a fresh third completion shard
-`S''`, drawn from the same fixed prompts and watermarked generator as `S'` with
-disjoint per-example seeds. It reuses the detector threshold frozen on the
-2,000 `S`-versus-`S'` construction pairs and measures `S'`-versus-`S''`
-advantage only on the 8,000 held-out pairs. `S''` never selects the detector,
-threshold, checkpoint, or sample size. Low advantage is required.
-
-The submission helper schedules both negative-control families and a final
-report containing only these controls.
+- [Za6d witness reuse](results/2026-11-21-reviewer-analysis/README.md) applies
+  Bonferroni correction to the 48 audits in Appendix Tables 4–5.
+- [oT8R Q2 and Q4](results/2026-11-23-reviewer-q4-calibration/README.md) cover
+  15 independently fine-tuned direct-base controls and the calibration grid.
+- [m7VV Q4](results/m7vv-witness-sharing/README.md) tests three development
+  histories on independently sampled Pythia-160M completions.

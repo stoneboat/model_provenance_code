@@ -1,7 +1,0 @@
-reviewer_concern,status,independent_unit,observed_result,remaining_job
-false_positive_calibration,configured_unrun,one_model_seed_plus_one_shard_seed,,pilot_then_12_Dolly_and_3_UltraChat_controls
-sample_size_checkpoint_power,runnable_unrun,independent_model_shard_run,,restore_or_generate_per_example_caches_then_run_curves
-controlled_scorer_dependence,observed_reanalysis,shared_model_checkpoint_cache,"both scorers reject 3/3 final targets and 0/3 final controls on each of Dolly and UltraChat",new_runs_will_retain_tokens_and_wall_time
-public_scorer_dependence,instrumented_unrun,model_and_matched_split,,run_13_available_public_targets
-public_split_sensitivity,preparation_observed,matched_prompt_pair,"0 exact duplicates; 0 near duplicates; length/code SMDs reduced",run_public_model_audits
-multiple_audits,observed_reanalysis,correlated_checkpoint_family,"12-test Holm: 6 target rejects and 0 control alarms; 48-test Holm/Bonferroni: 27 target rejects and 0 control alarms",none

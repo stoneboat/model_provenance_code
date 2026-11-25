@@ -1,0 +1,50 @@
+{
+  "dataset": {
+    "dataset_id": "iamgroot42/mimir",
+    "config": "github",
+    "split": "ngram_13_0.2",
+    "seed": 0,
+    "min_words": 8,
+    "max_words": 32,
+    "num_train_per_class": 500,
+    "num_test_per_class": 200
+  },
+  "published_split_revision": null,
+  "reconstruction_revision": "02500d3b7cece0cb7628e939ba9fc93fdb6362ae",
+  "frozen_split_sha256": {
+    "test.jsonl": "728328668a9050b8ba220ad2f0369f0c0e5ab9dddde72d6dd532f42d73deff2d",
+    "train.jsonl": "99b93475ca2a51e2bbddbb7650c2439f9e6c2c2da2ed6e820ec94778f58292e3"
+  },
+  "base_models": {
+    "Pythia-1.4B": {
+      "id": "EleutherAI/pythia-1.4b",
+      "revision": "fedc38a16eea3bd36a96b906d78d11d2ce18ed79"
+    },
+    "GPT-Neo-1.3B": {
+      "id": "EleutherAI/gpt-neo-1.3B",
+      "revision": "dbe59a7f4a88d01d1ba9798d78dbe3fe038792c8"
+    },
+    "BioGPT-Large": {
+      "id": "microsoft/biogpt-large",
+      "revision": "c6a5136a91c5e3150d9f05ab9d33927a3210a22e"
+    },
+    "Pythia-1.4B step 0": {
+      "id": "EleutherAI/pythia-1.4b",
+      "revision": "ae04bdc1923b877cf65aee9da264d30555f011ab"
+    }
+  },
+  "training_model_keys": {
+    "Pythia-1.4B": "pythia",
+    "GPT-Neo-1.3B": "gpt_neo"
+  },
+  "inference": {
+    "dtype": "float16",
+    "batch_size": 4,
+    "max_length": 512
+  },
+  "audit": {
+    "n_thresholds": 2000,
+    "criterion": "balanced_accuracy",
+    "alpha": 0.05
+  }
+}

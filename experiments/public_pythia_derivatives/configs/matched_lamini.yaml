@@ -1,0 +1,136 @@
+question: Does a shared MIMIR GitHub witness signal remain after both models fine-tune
+  on Lamini Docs?
+bases:
+  pythia:
+    model: EleutherAI/pythia-1.4b
+    revision: fedc38a16eea3bd36a96b906d78d11d2ce18ed79
+    tokenizer_class: GPTNeoXTokenizerFast
+    lora_module_suffixes:
+    - attention.dense
+    - mlp.dense_4h_to_h
+    expected_modules: 48
+    trainable_parameters: 5505024
+  gpt_neo:
+    model: EleutherAI/gpt-neo-1.3B
+    revision: dbe59a7f4a88d01d1ba9798d78dbe3fe038792c8
+    tokenizer_class: GPT2TokenizerFast
+    lora_module_suffixes:
+    - attn.attention.out_proj
+    - mlp.c_proj
+    expected_modules: 48
+    trainable_parameters: 5505024
+training_data:
+  dataset: lamini/lamini_docs
+  revision: 05bd680b81d69a7a1d38193873f1487d73e535bf
+  config: default
+  train:
+    split: train
+    rows: 1260
+  eval:
+    split: test
+    rows: 140
+  fields:
+  - question
+  - answer
+  raw_fields: preserve whitespace
+  prefix: 'Question: {question}
+
+    Answer:'
+  completion: One leading ASCII space followed by the raw answer. If the answer is
+    whitespace-only, use zero answer tokens.
+  input: Encode prefix and completion separately with the pinned native tokenizer,
+    add_special_tokens=false. Apply the tokenizer's native build_inputs_with_special_tokens
+    to their concatenation and append one native EOS.
+  labels: Mask native prefix, prompt and all padding with -100. Supervise the answer
+    and its final EOS, including EOS at the empty-answer row.
+  max_tokens: 512
+  right_pad_to_multiple_of: 8
+  packing: false
+  expected_truncated_rows: 0
+  verify_coverage: Stable parquet row indices, every training row once per epoch in
+    both arms, no dropping, deduplication or resampling.
+  expected_counts_per_epoch:
+    pythia:
+      input_tokens: 108730
+      supervised_tokens: 80204
+      max_input_length: 485
+    gpt_neo:
+      input_tokens: 105861
+      supervised_tokens: 78293
+      max_input_length: 473
+  parquet:
+    test-00000-of-00001-4c77a066a883f339.parquet: 45cb59c0da369138c80abff4da24d6875c43fa70892db1f38cc994a33621bd0f
+    train-00000-of-00001-5cdebbc48da41394.parquet: 438561ae8e2e9579a0e5a62c54059526b41b7c104ee70e0e7adc1c6efc7d99f5
+fine_tuning:
+  method: Causal LM, LoRA on every layer's attention output and feed-forward down
+    projection.
+  rank: 16
+  alpha: 32
+  adapter_dropout: 0.05
+  trainable_bias: false
+  init: Kaiming-uniform A and zero B. Freeze all base parameters including embeddings
+    and LM head.
+  device: cuda:0
+  quantization: none
+  frozen_base_dtype: bfloat16
+  adapter_and_optimizer_state_dtype: float32
+  compute: bfloat16_autocast
+  backbone_dropout: 0.0
+  use_cache: false
+  gradient_checkpointing: non_reentrant
+  torch_seed: 42
+  row_order: Use one NumPy default_rng(42). Generate successive independent permutations
+    of 0..1259 across epochs; reuse the lists in both arms.
+  epochs: 3
+  microbatch: 4
+  gradient_accumulation: 4
+  effective_batch: 16 rows except the final group of 12 in each epoch. Flush the partial
+    group.
+  optimizer_updates: 237
+  loss: Sum causal answer/EOS cross-entropies across each accumulation group and divide
+    by that group's actual number of supervised tokens.
+  optimizer: AdamW
+  lr: 0.0002
+  betas:
+  - 0.9
+  - 0.999
+  epsilon: 1.0e-08
+  weight_decay: 0.0
+  clip_gradient_norm: 1.0
+  scheduler: Linear warmup for 12 optimizer updates, then linear decay to zero at
+    237 updates.
+  checkpoint: final_epoch_3
+  outputs:
+  - adapter_weights
+  - adapter_config
+  - effective_train_config
+  - row_order
+  - training_loss_trace
+  - seed
+  - library_versions
+  - peak_memory
+  - elapsed_time
+downstream_evaluation:
+  checkpoint_choice: fixed_in_advance
+  stages:
+  - pretrained
+  - final_adapted
+  sets:
+  - full_official_train_1260
+  - full_official_test_140
+  - test_with_both_normalized_fields_unseen_in_train_124
+  metrics: Teacher-forced token-weighted answer/EOS NLL and exp(NLL) in eval mode;
+    report within-model pre/post absolute and relative loss change, including token
+    counts. Evaluate with identical precision inside each pair.
+  interval: Descriptive paired bootstrap of the 140 test rows (10,000 replicates,
+    NumPy default_rng(3324)); reuse row indices before/after, sum losses and token
+    counts before division, report 2.5th/97.5th percentiles of post-minus-pre NLL.
+  interpretation: Use loss magnitude and uncertainty within each native tokenizer.
+    Report absent or weak held-out adaptation alongside every MIMIR outcome.
+witness_audit:
+  construction_per_source: 500
+  eval_per_source: 200
+  threshold_fit: 'On each checkpoint and score separately: 6-decimal stored scores,
+    2,001 ascending equally spaced thresholds from construction min to max, maximize
+    balanced accuracy, take first tie. Predict member when score >= threshold.'
+  alpha: 0.05

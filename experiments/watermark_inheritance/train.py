@@ -166,8 +166,7 @@ def _write_checkpoint(destination: Path, model, tokenizer, metadata: dict,
         raise
 
 
-def train_stage(run_dir: Path, stage: str, device: str = "cuda", max_steps: int | None = None,
-                stop_epoch: int | None = None) -> dict:
+def train_stage(run_dir: Path, stage: str, device: str = "cuda", max_steps: int | None = None) -> dict:
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
     from .common import load_config, load_json, read_jsonl, write_json
@@ -199,9 +198,6 @@ def train_stage(run_dir: Path, stage: str, device: str = "cuda", max_steps: int 
     epochs = int(config.get("stage_epochs", {}).get(stage, config.get("epochs", 3)))
     if epochs < 1:
         raise ValueError("epochs must be positive")
-    last_epoch = epochs if stop_epoch is None else stop_epoch
-    if not 1 <= last_epoch <= epochs:
-        raise ValueError("Requested stopping epoch is outside the planned stage")
     checkpoint_root = run_dir / "checkpoints"
     checkpoint_root.mkdir(parents=True, exist_ok=True)
     latest, previous_metadata = None, None
@@ -215,12 +211,6 @@ def train_stage(run_dir: Path, stage: str, device: str = "cuda", max_steps: int 
         if metadata["epoch"] != epoch or metadata["global_step"] != metadata["expected_steps_per_epoch"] * epoch:
             raise ValueError(f"Checkpoint epoch/step mismatch: {candidate}")
         latest, previous_metadata = candidate, metadata
-    if stop_epoch is not None and previous_metadata and previous_metadata["epoch"] >= last_epoch:
-        requested = checkpoint_root / _checkpoint_name(stage, last_epoch, epochs)
-        requested_state = load_json(requested / "stage_state.json")
-        if requested_state["identity"] != identity or not requested_state["epoch_complete"]:
-            raise ValueError(f"Requested epoch identity/completion mismatch: {requested}")
-        return requested_state
     if previous_metadata and previous_metadata["epoch"] == epochs:
         if not previous_metadata.get("complete", False):
             raise ValueError(f"Final checkpoint is not complete: {latest}")
@@ -324,9 +314,7 @@ def train_stage(run_dir: Path, stage: str, device: str = "cuda", max_steps: int 
                       "rows": len(examples), "response_tokens_per_epoch": sum(row["response_tokens"] for row in examples),
                       "steps_per_epoch": steps_per_epoch, "micro_batch": micro_batch,
                       "effective_batch": effective_batch, "resume_epoch": first_epoch}), flush=True)
-    high_precision_head = config.get("precision") == "fp32_master_bf16_backbone_fp32_head"
-    saved_epochs = config.get("save_epochs", [])
-    for epoch in range(first_epoch, last_epoch + 1):
+    for epoch in range(first_epoch, epochs + 1):
         epoch_start = time.monotonic()
         epoch_tokens, epoch_examples, epoch_loss, epoch_input_tokens = 0, 0, 0.0, 0
         generator = torch.Generator().manual_seed(stage_seed + epoch)
@@ -338,13 +326,7 @@ def train_stage(run_dir: Path, stage: str, device: str = "cuda", max_steps: int 
                 chunk = [examples[i] for i in indices]
                 inputs, labels = collate(chunk, tokenizer.pad_token_id, device)
                 with torch.autocast(device_type="cuda" if is_cuda else "cpu", dtype=torch.bfloat16, enabled=is_cuda):
-                    if high_precision_head:
-                        hidden = model.gpt_neox(**inputs, use_cache=False).last_hidden_state
-                        with torch.autocast(device_type=device.split(":")[0], enabled=False):
-                            logits = model.embed_out(hidden.float())
-                        del hidden
-                    else:
-                        logits = model(**inputs, use_cache=False).logits
+                    logits = model(**inputs, use_cache=False).logits
                     loss_sum = valid_vocab_loss(logits, labels, vocab_size)
                     loss = loss_sum / batch_response_tokens
                 loss.backward()
@@ -396,7 +378,7 @@ def train_stage(run_dir: Path, stage: str, device: str = "cuda", max_steps: int 
                     "micro_batch_size": micro_batch, "history": history,
                     "loss_description": "training-set completion/response token mean; not held-out performance",
                     "max_memory_allocated": torch.cuda.max_memory_allocated(device) if is_cuda else None}
-        if not complete and config.get("save_final_only", False) and epoch not in saved_epochs and epoch != last_epoch:
+        if not complete and config.get("save_final_only", False):
             print(json.dumps({"event": "epoch_complete", "stage": stage, **epoch_metrics}), flush=True)
             continue
         destination = checkpoint_root / _checkpoint_name(stage, epoch, epochs)

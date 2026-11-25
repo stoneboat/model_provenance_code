@@ -1,4 +1,0 @@
-epoch,family,keyed_crossfit_gap,fold1,fold2,passes,min_k20_crossfit_gap
-6,bf16_lr5,0.13999999999999999,0.105,0.175,False,0.53
-6,head32_lr5,0.06,0.06,0.06,False,0.46499999999999997
-9,bf16_lr5,0.2225,0.225,0.22,True,0.6074999999999999

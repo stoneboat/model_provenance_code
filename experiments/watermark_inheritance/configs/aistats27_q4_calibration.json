@@ -1,9 +1,27 @@
 {
   "study_id": "aistats27_reviewer3_q4_calibration",
   "analysis_seed": 20261123,
-  "alpha_values": [0.01, 0.025, 0.05, 0.1],
-  "sample_sizes": [250, 500, 1000, 2000, 4000, 8000],
-  "contamination_rates": [0.0, 0.05, 0.1, 0.2, 0.4],
+  "alpha_values": [
+    0.01,
+    0.025,
+    0.05,
+    0.1
+  ],
+  "sample_sizes": [
+    250,
+    500,
+    1000,
+    2000,
+    4000,
+    8000
+  ],
+  "contamination_rates": [
+    0.0,
+    0.05,
+    0.1,
+    0.2,
+    0.4
+  ],
   "subsample_replicates": 25,
   "primary_alpha": 0.05,
   "primary_sample_size": 8000,
@@ -11,10 +29,7 @@
     "dolly": "C3",
     "ultrachat_controls": "UC12500"
   },
-  "fresh_shard_endpoints": {
-    "dolly": "C3"
-  },
   "contamination_mechanism": "Within each selected held-out pair, replace the second/control-side binary decision with the first/witness-side decision for exactly floor(rate*m) pairs selected by a fixed seed. This models witness examples leaking into the control side and can only set selected paired differences to zero.",
   "decision_rule": "Reject when absolute paired mean decision difference is strictly greater than sqrt(2*log(2/alpha)/m).",
-  "independence_policy": "Only the 15 primary endpoint model-seed/shard-seed units are independent model-control trials. The six fresh-shard audits are a separate family. Subsamples and checkpoint repeats remain clustered by model seed and shard seed."
+  "independence_policy": "The 15 model/shard endpoints are independent units. Subsamples remain clustered by model and shard."
 }

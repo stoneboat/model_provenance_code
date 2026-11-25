@@ -1,5 +1,0 @@
-model,score,lamini_gap,dolly_gap,dolly_minus_lamini_gap,ci_lower,ci_upper,draws,seed,comparison
-pythia,min_k_20_logprob,0.33,0.385,0.055,0.005,0.105,10000,3324,"descriptive, adapted models trained on different datasets and epoch counts"
-pythia,mean_logprob,0.375,0.41,0.035,-0.01,0.08,10000,3324,"descriptive, adapted models trained on different datasets and epoch counts"
-biogpt,min_k_20_logprob,0.275,0.25,-0.025,-0.095,0.045,10000,3324,"descriptive, adapted models trained on different datasets and epoch counts"
-biogpt,mean_logprob,0.175,0.24,0.065,0.0,0.13,10000,3324,"descriptive, adapted models trained on different datasets and epoch counts"

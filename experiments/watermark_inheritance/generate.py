@@ -28,6 +28,29 @@ def watermark_config_id(config):
         ("watermark_key", None), ("gamma", .25), ("delta", 3.), ("ngram", 2), ("salt_key", 35317)]})
 
 
+def double_prime_seed(config: dict, pair_id: str, phase: str = "full") -> int:
+    """A deterministic draw disjoint from the original integer side labels."""
+    return sampling_seed(configured_shard_seed(config), phase, pair_id, "s_double_prime")
+
+
+def validate_double_prime(row: dict, pair: dict, config: dict) -> None:
+    for field in ("pair_id", "source_id", "audit_split"):
+        if row.get(field) != pair.get(field):
+            raise ValueError(f"S'' record mismatched {field}: {pair['pair_id']}")
+    ids = row.get("completion_ids")
+    if not isinstance(ids, list) or not 1 <= len(ids) <= int(config.get("max_new_tokens", 256)):
+        raise ValueError("Invalid S'' completion length")
+    if row.get("completion_length") != len(ids):
+        raise ValueError("S'' stored length disagrees with token IDs")
+    expected = double_prime_seed(config, pair["pair_id"])
+    if row.get("sampling_seed") != expected:
+        raise ValueError("S'' sampling seed changed")
+    if expected in {pair.get("sampling_seed_s"), pair.get("sampling_seed_s_prime")}:
+        raise ValueError("S'' reused an S or S' sampling seed")
+    if row.get("watermark_config_id") != watermark_config_id(config):
+        raise ValueError("S'' watermark configuration changed")
+
+
 def generation_config_id(config):
     values = {key: config.get(key, default) for key, default in [
         ("seed", None), ("watermark_key", None), ("gamma", .25), ("delta", 3.),

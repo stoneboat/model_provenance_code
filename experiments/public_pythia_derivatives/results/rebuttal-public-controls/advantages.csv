@@ -1,0 +1,13 @@
+model,score,threshold,member_accepted,nonmember_accepted,signed_advantage
+Pythia-1.4B,min_k_20_logprob,-6.91485688,125,49,0.38
+Pythia-1.4B,mean_logprob,-2.1343611059999996,129,51,0.39
+Pythia-1.4B + Lamini,min_k_20_logprob,-7.35902604,113,47,0.33
+Pythia-1.4B + Lamini,mean_logprob,-2.143917205,106,31,0.375
+GPT-Neo-1.3B,min_k_20_logprob,-6.598133235000001,106,45,0.305
+GPT-Neo-1.3B,mean_logprob,-1.9294849020000004,114,43,0.355
+GPT-Neo-1.3B + Lamini,min_k_20_logprob,-6.879182892,95,40,0.275
+GPT-Neo-1.3B + Lamini,mean_logprob,-2.0502103479999993,103,37,0.33
+BioGPT-Large,mean_logprob,-6.626947825,181,181,0.0
+BioGPT-Large,min_k_20_logprob,-16.132413082,198,196,0.01
+Pythia-1.4B step 0,mean_logprob,-10.992432973,98,89,0.045
+Pythia-1.4B step 0,min_k_20_logprob,-11.714882263,41,29,0.06

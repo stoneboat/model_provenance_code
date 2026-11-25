@@ -31,5 +31,5 @@ python experiments/public_pythia_derivatives/runners/run_audit.py \
   --seeds "${PYTHIA_SEEDS:-0}" \
   --batch-size "${PYTHIA_BATCH_SIZE:-4}" \
   --dtype "${PYTHIA_DTYPE:-float16}" \
-  --skip-prepare \
+  --skip-prepare --skip-unavailable \
   --resume

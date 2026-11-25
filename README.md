@@ -1,80 +1,65 @@
-# Causal Model Provenance
+# Causal Model Provenance via Shard Witness Auditing
 
-This repository contains the experiment code and compact published results for
-the submitted AISTATS 2027 paper *Causal Model Provenance via Shard Membership
-Auditing*. The audit asks whether a target retains a witness carried by a
-candidate parent's training shard.
+Code and result tables for the submitted AISTATS 2027 paper and its author
+responses. The controlled experiments test what a witness audit can establish
+about model ancestry. The public-model experiments measure detectable
+training-data signals under their stated reference protocols.
 
-## Submitted experiments
+## Experiments
 
-Directory names describe the scientific experiment rather than a table number:
+| Package | Submitted paper | Author responses |
+| --- | --- | --- |
+| [Watermark inheritance](experiments/watermark_inheritance/README.md) | §5.1, Table 1, Appendix D.1 Tables 4–5 | Za6d witness reuse, oT8R Q2/Q4, m7VV Q4 |
+| [Public Pythia derivatives](experiments/public_pythia_derivatives/README.md) | §5.2.1, Table 2, Appendix D.2 Table 6 | qmGv Q1/Q3 and oT8R Q3 |
+| [Pythia INT8](experiments/pythia_int8_quantization/README.md) | §5.2.1, Table 2, Appendix D.2 Table 7 | |
+| [ViT derivatives and transformations](experiments/vit_provenance/README.md) | §5.2.2, Table 3, Appendix D.3–D.4 Tables 8–9 | qmGv Q3 and oT8R Q2/Q3 |
+| [Conditional-power simulation](experiments/power_simulation/README.md) | Proposition 6, §4.3 | oT8R Q5 |
 
-| Experiment | Paper coverage | Entry point |
-|---|---|---|
-| [`watermark_inheritance/`](experiments/watermark_inheritance/) | Table 1; Appendix Tables 4–5 | `submit.sh`, `submit_ultrachat.sh` |
-| [`public_pythia_derivatives/`](experiments/public_pythia_derivatives/) | Table 2 public derivatives; Appendix Table 6 | `submit.sh` |
-| [`pythia_int8_quantization/`](experiments/pythia_int8_quantization/) | Table 2 INT8 summary; Appendix Table 7 | `jobs/run_paper_targets.sbatch` |
-| [`vit_provenance/`](experiments/vit_provenance/) | Table 3; Appendix Tables 8–9 | `jobs/run_public_derivatives.sbatch` |
+The [experiment inventory](docs/EXPERIMENTS.md) maps each reported result to
+its implementation, preparation, configuration, and saved evidence. It
+records which results can be recalculated from the supplied evidence and
+which reruns depend on original assets.
 
-[The experiment map](docs/EXPERIMENTS.md) records the exact main/appendix
-mapping and the availability of each reproduction pipeline.
+## Environment
 
-The [controlled watermark-inheritance manuscript fragment](docs/manuscript/watermark_inheritance/README.md)
-provides the proposed Section 5.3.1 with verified run-by-run Dolly and UltraChat
-tables and instructions for insertion into the manuscript source.
-
-## Setup on PACE
+Use Python 3.11 or 3.12. Create an isolated environment and install the
+pinned dependencies, then work from the repository root.
 
 ```bash
-bash scripts/cluster/install_pace.sh
-export HF_TOKEN=<your_huggingface_token>
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
 python scripts/setup/check_env.py
 ```
 
-`requirements.txt` pins the validated package versions. Each experiment keeps
-its immutable model, dataset, and external-code revisions directly beside the
-commands that download them.
+On PACE, use [the Slurm bootstrap](scripts/cluster/install_pace.sh) in place
+of the virtual environment setup. Use a CUDA-capable PyTorch build compatible
+with the GPU and driver. The watermark and Lamini training runs require BF16
+support. INT8 inference uses bitsandbytes on a supported GPU. Slurm commands
+accept site-specific account and partition overrides.
 
-Each experiment README gives its full command. Scheduler account and partition
-choices are supplied through documented environment variables or normal
-`sbatch` command-line overrides; no personal account is committed.
+MIMIR and some model repositories require approved Hugging Face access.
+Authenticate using the Hub client or provide `HF_TOKEN` in your environment.
+Download model and dataset inputs from their pinned upstream repositories
+under their respective access and license terms. Downloaded inputs, weights,
+checkpoints, and raw scoring outputs are generated locally under `.cache/`
+and `artifacts/`. The committed numeric evidence contains scores and
+aggregate statistics.
 
-## Repository layout
-
-```text
-experiments/        Submitted-paper experiments and compact result tables
-scripts/data/       Reusable MIMIR data preparation
-scripts/scoring/    Reusable language-model scoring
-scripts/audit/      Threshold calibration and held-out evaluation
-scripts/cluster/    PACE environment bootstrap
-scripts/setup/      Environment and configuration checks
-src/shard_audit/    Shared audit, data, scoring, and experiment metadata
-artifacts/          Generated runs and checkpoints (ignored by Git)
-.cache/             Downloaded models and datasets (ignored by Git)
-```
-
-Generated datasets, checkpoints, and raw scores belong under `artifacts/`.
-Only compact result tables and validation manifests needed to audit paper claims
-are versioned.
-
-## Verification
+## Verify and reproduce
 
 ```bash
-.venv_pace/bin/python -m pytest -q
-find experiments scripts -type f \( -name '*.sh' -o -name '*.sbatch' \) \
-  -exec bash -n {} +
+python -m pytest -q tests experiments/watermark_inheritance/tests
+python -m experiments.watermark_inheritance.runners.verify_m7vv
+python -m experiments.public_pythia_derivatives.reports.verify_rebuttal_controls
+python experiments/power_simulation/reproduce.py --check
+find experiments scripts -type f \( -name '*.sh' -o -name '*.sbatch' \) -exec bash -n {} +
 ```
 
-The watermark package additionally contains tiny-model compatibility, resume,
-scoring, and exact published-result tests under
-`experiments/watermark_inheritance/tests/`.
-
-## Core terms
-
-- **Secret shard:** examples that carry the candidate witness.
-- **Control shard:** matched examples that do not carry that witness.
-- **Construction split:** data used to select and freeze the distinguisher.
-- **Evaluation split:** held-out data used only for the final test.
-- **Shard advantage:** held-out true-positive rate minus false-positive rate.
-- **Witness detected:** the signed held-out advantage exceeds the paper's fixed
-  level-0.05 threshold.
+The upstream watermark compatibility tests expect a source checkout at
+`.cache/watermark/radioactive-watermark`. Set it up using
+[the pinned watermark source instructions](experiments/watermark_inheritance/DESIGN.md).
+Each experiment README gives the model and data preparation commands for
+new GPU runs. Shared preparation, scoring and auditing commands are under
+[`scripts/`](scripts/README.md), with reusable Python code under
+[`src/shard_audit/`](src/shard_audit/README.md).

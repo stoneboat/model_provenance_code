@@ -12,63 +12,99 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from experiments.watermark_inheritance.common import Maryland, load_config, read_jsonl, write_json, write_jsonl
 from experiments.watermark_inheritance.generate import (
-    configured_shard_seed, pair_record, sample_batch, sampling_seed, validate_pair, watermark_config_id,
+    configured_shard_seed, double_prime_seed, pair_record, sample_batch, sampling_seed,
+    validate_double_prime, validate_pair, watermark_config_id,
 )
-from experiments.watermark_inheritance.null_control import double_prime_seed, validate_double_prime
-from experiments.watermark_inheritance.prepare import file_sha256, select_prompts, validate_tokenizer, verify_upstream
+from experiments.watermark_inheritance.prepare import encode_dolly, file_sha256, select_prompts, validate_tokenizer, verify_upstream
 
-ORIGINAL = Path("artifacts/m7vv_q4")
-RUN = Path("artifacts/m7vv_minimal/confirmation")
-PROMPT_SEED = 21729
-SPLIT_SEED = 27183
-SHARD_SEED = 20301
+RUN = Path("artifacts/m7vv_witness_sharing")
+PROTOCOL = Path(__file__).resolve().parents[1] / "configs/m7vv_witness_sharing.json"
 
 
-def prepare(run=RUN, backup=False):
-    prepared = run / "prepared"
-    prompt_seed, split_seed, shard_seed = ((31729, 37183, 30301) if backup else (PROMPT_SEED, SPLIT_SEED, SHARD_SEED))
-    if (prepared / "prompts.manifest.json").exists():
-        raise FileExistsError("Confirmation prompts have already been prepared")
-    cfg = load_config(ORIGINAL)
-    cfg.update(run_id="m7vv_independent_backup" if backup else "m7vv_independent_confirmation", seed=shard_seed,
-               shard_seed=shard_seed, prompt_seed=prompt_seed, pilot_pairs=0)
-    write_json(run / "config.json", cfg)
+def prepare(run, inputs, dolly_file):
+    """Recover the published prompt order and fixed downstream training rows."""
+    protocol = json.loads(PROTOCOL.read_text())
+    cfg = dict(protocol["generation"], model_path=str(inputs / "base"),
+               tokenizer_path=str(inputs / "base"), shared_dir=str(inputs / "sources"),
+               upstream_path=str(inputs / "sources/radioactive-watermark"))
     verify_upstream(cfg)
-    tok = AutoTokenizer.from_pretrained(cfg["tokenizer_path"], local_files_only=True)
-    validate_tokenizer(tok)
-    old_rows = read_jsonl(ORIGINAL / "prepared/prompts.jsonl") + read_jsonl(ORIGINAL / "prepared/pilot_prompts.jsonl")
-    if backup:
-        old_rows += read_jsonl(RUN / "prepared/prompts.jsonl")
-    old_articles = {r["article_id"] for r in old_rows}
-    old_prefixes = {tuple(r["prompt_ids"]) for r in old_rows}
-    columns = ["text"]
-    parquet = sorted((ORIGINAL / "sources").glob("train-*-of-00002.parquet"))
-    manifest = json.loads((ORIGINAL / "prepared/prompts.manifest.json").read_text())
-    if [file_sha256(path) for path in parquet] != manifest["parquet_sha256"]:
-        raise ValueError("WikiText input revisions differ from original run")
-    data = (r for path in parquet for batch in pq.ParquetFile(path).iter_batches(batch_size=8192,columns=columns)
-            for r in batch.to_pylist())
-    n = cfg["pairs"]
-    pool, _, info = select_prompts(data, tok, count=n+len(old_rows), pilot_count=0,
-                                    calibration_count=0, prompt_tokens=cfg["prompt_tokens"], seed=prompt_seed)
-    main = [p for p in pool if p["article_id"] not in old_articles and tuple(p["prompt_ids"]) not in old_prefixes][:n]
-    calibration = set(random.Random(split_seed).sample(range(n),cfg["calibration_pairs"]))
-    if len(main) != n or len({p["article_id"] for p in main}) != n:
-        raise ValueError("Independent prompt coverage mismatch")
-    for i, p in enumerate(main):
-        p.update(pair_id=f"backup_{i:05d}" if backup else f"confirm_{i:05d}", audit_split="calibration" if i in calibration else "audit")
-    path = prepared / "prompts.jsonl"
-    write_jsonl(path,main)
-    write_json(prepared / "prompts.manifest.json", dict(
-        source=manifest["source"], parquet_sha256=manifest["parquet_sha256"], source_pool=info["eligible_articles"],
-        split_seed=split_seed,prompt_seed=prompt_seed,shard_seed=shard_seed,reused_watermark_key=cfg["watermark_key"],
-        distinct_articles=n,overlapping_old_articles=0,overlapping_old_token_prefixes=0,
-        excluded_original_article_count=len(old_articles),split_counts=Counter(p["audit_split"] for p in main),
-        prompts_sha256=file_sha256(path), max_new_tokens=cfg["max_new_tokens"]))
-    print(f"Prepared {n} distinct fresh prompts and split; {len(old_articles)} development/pilot articles excluded.",flush=True)
+    tokenizer = AutoTokenizer.from_pretrained(cfg["tokenizer_path"], local_files_only=True)
+    validate_tokenizer(tokenizer)
+    parquet = sorted((inputs / "sources").glob("train-*-of-00002.parquet"))
+    wikitext = protocol["wikitext"]
+    if [file_sha256(path) for path in parquet] != wikitext["parquet_sha256"]:
+        raise ValueError("Expected both pinned WikiText parquet files")
+
+    def select(count, pilot_count, seed):
+        rows = (row for path in parquet for batch in pq.ParquetFile(path).iter_batches(
+            batch_size=8192, columns=["text"]) for row in batch.to_pylist())
+        main, pilot, _ = select_prompts(rows, tokenizer, count=count, pilot_count=pilot_count,
+                                       calibration_count=0, prompt_tokens=cfg["prompt_tokens"], seed=seed)
+        return main + pilot
+
+    def exclude_previous(candidates, previous):
+        article_ids = {row["article_id"] for row in previous}
+        prefixes = {tuple(row["prompt_ids"]) for row in previous}
+        return [row for row in candidates if row["article_id"] not in article_ids
+                and tuple(row["prompt_ids"]) not in prefixes]
+
+    # Reconstruct selections only. Earlier completions and checkpoints are unnecessary.
+    first, second = wikitext["excluded_prompt_draws"]
+    count = cfg["pairs"]
+    previous = select(count, first["pilot_count"], first["prompt_seed"])
+    previous += exclude_previous(select(count + len(previous), 0, second["prompt_seed"]), previous)[:count]
+    prompts = exclude_previous(select(count + len(previous), 0, cfg["prompt_seed"]), previous)[:count]
+    construction = set(random.Random(wikitext["construction_assignment_seed"]).sample(
+        range(count), cfg["calibration_pairs"]))
+    for index, row in enumerate(prompts):
+        row.update(pair_id=f"backup_{index:05d}", audit_split="calibration" if index in construction else "audit")
+    if len(prompts) != count:
+        raise ValueError("Insufficient disjoint WikiText prompts")
+
+    prepared = run / "prepared"
+    prompts_file = prepared / "prompts.jsonl"
+    write_jsonl(prompts_file, prompts)
+    prompts_digest = file_sha256(prompts_file)
+    if prompts_digest != wikitext["published_prompts_sha256"]:
+        raise ValueError("Prompt order or tokens differ from the published run")
+    write_json(prepared / "prompts.manifest.json", {
+        "prompts_sha256": prompts_digest,
+        "excluded_article_count": len(previous),
+        "split_counts": Counter(row["audit_split"] for row in prompts),
+    })
+
+    dolly = protocol["dolly"]
+    if file_sha256(dolly_file) != dolly["source_sha256"]:
+        raise ValueError("Dolly file differs from the pinned source")
+    rows = read_jsonl(dolly_file)
+    if len(rows) != dolly["source_rows"]:
+        raise ValueError("Unexpected Dolly row count")
+    indices = random.Random(dolly["selection_seed"]).sample(range(len(rows)), dolly["rows"])
+    encoded = []
+    for index in indices:
+        example = encode_dolly(rows[index], tokenizer, max_length=protocol["training"]["max_length"])
+        if example is None:
+            raise ValueError(f"Invalid Dolly row {index}")
+        encoded.append(dict(source_index=index, **example))
+    dolly_path = prepared / "dolly.jsonl"
+    write_jsonl(dolly_path, encoded)
+    output_digest = file_sha256(dolly_path)
+    if output_digest != dolly["encoded_sha256"]:
+        raise ValueError("Dolly preprocessing differs from the published run")
+    write_json(prepared / "dolly_manifest.json", {
+        "selection": "fixed_source_rows",
+        "selection_seed": dolly["selection_seed"],
+        "dataset_id": dolly["id"],
+        "dataset_revision": dolly["revision"],
+        "rows": len(encoded),
+        "output_file_sha256": output_digest,
+    })
+    write_json(run / "config.json", cfg)
+    write_json(run / "protocol.json", protocol)
+    print(f"Verified {len(prompts)} published prompts and {len(encoded)} Dolly rows.", flush=True)
 
 
-def generate(max_batches, run=RUN, backup=False):
+def generate(max_batches, run=RUN):
     prepared = run / "prepared"
     cfg = load_config(run)
     info=json.loads((prepared/"prompts.manifest.json").read_text())
@@ -120,16 +156,18 @@ def generate(max_batches, run=RUN, backup=False):
             pairs.append(r["pair"])
             thirds.append(r["third"])
     streams={r["sampling_seed"] for r in thirds} | {p[k] for p in pairs for k in ("sampling_seed_s","sampling_seed_s_prime")}
-    archived_streams = set()
-    for prefix in ("","pilot_"):
-        old=ORIGINAL/"prepared"
-        archived_streams.update(r["sampling_seed"] for r in read_jsonl(old/(prefix+"s_double_prime.jsonl")))
-        archived_streams.update(p[k] for p in read_jsonl(old/(prefix+"pairs.jsonl")) for k in ("sampling_seed_s","sampling_seed_s_prime"))
-    if backup:
-        first=RUN/"prepared"
-        archived_streams.update(r["sampling_seed"] for r in read_jsonl(first/"s_double_prime.jsonl"))
-        archived_streams.update(p[k] for p in read_jsonl(first/"pairs.jsonl") for k in ("sampling_seed_s","sampling_seed_s_prime"))
-    if len(streams)!=3*len(prompts) or (streams & archived_streams):
+    first, second = json.loads(PROTOCOL.read_text())["wikitext"]["excluded_prompt_draws"]
+    prior_draws = (
+        (first["shard_seed"], "full", "pair", len(prompts)),
+        (first["shard_seed"], "pilot", "pilot", first["pilot_count"]),
+        (second["shard_seed"], "full", "confirm", len(prompts)),
+    )
+    previous_streams = {
+        sampling_seed(seed, phase, f"{prefix}_{index:05d}", side)
+        for seed, phase, prefix, count in prior_draws for index in range(count)
+        for side in (0, 1, "s_double_prime")
+    }
+    if len(streams) != 3 * len(prompts) or streams & previous_streams:
         raise ValueError("Sampling streams overlap")
     write_jsonl(prepared/"pairs.jsonl",pairs)
     write_jsonl(prepared/"s_double_prime.jsonl",thirds)
@@ -147,10 +185,12 @@ if __name__=="__main__":
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action",choices=["prepare","generate"])
     parser.add_argument("--max-batches",type=int)
-    parser.add_argument("--backup",action="store_true",help="Use disjoint, prespecified backup inputs and seeds")
-    args=parser.parse_args()
-    location=RUN.with_name("confirmation_backup") if args.backup else RUN
-    if args.action=="prepare":
-        prepare(location,args.backup)
+    parser.add_argument("--run-dir", type=Path, default=RUN)
+    parser.add_argument("--inputs", type=Path)
+    parser.add_argument("--dolly-file", type=Path)
+    args = parser.parse_args()
+    inputs = (args.inputs or args.run_dir / "inputs").resolve()
+    if args.action == "prepare":
+        prepare(args.run_dir, inputs, args.dolly_file or inputs / "sources/databricks-dolly-15k.jsonl")
     else:
-        generate(args.max_batches,location,args.backup)
+        generate(args.max_batches, args.run_dir)

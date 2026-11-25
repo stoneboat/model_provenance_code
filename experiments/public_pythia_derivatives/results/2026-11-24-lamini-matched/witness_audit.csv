@@ -1,9 +1,0 @@
-model,role,score,family,n_per_source,fitted_threshold,member_accepted,nonmember_accepted,signed_advantage,absolute_advantage,auc,alpha,individual_cutoff,positive_individual,bonferroni_cutoff,positive_bonferroni,shuffled_advantage
-Pythia-1.4B,pythia_base,min_k_20_logprob,descriptive,200,-6.91485688,125,49,0.38,0.38,0.7356,0.05,0.13581015157406195,True,,,-0.035
-Pythia-1.4B,pythia_base,mean_logprob,descriptive,200,-2.1343611059999996,129,51,0.39,0.39,0.7535,0.05,0.13581015157406195,True,,,0.01
-Pythia-1.4B Lamini,pythia_adapted,min_k_20_logprob,primary_MIN-K20,200,-7.35902604,113,47,0.33,0.33,0.7018,0.05,0.13581015157406195,True,0.14802071873007983,True,-0.08
-Pythia-1.4B Lamini,pythia_adapted,mean_logprob,exploratory_mean,200,-2.143917205,106,31,0.375,0.375,0.7226,0.05,0.13581015157406195,True,0.14802071873007983,True,-0.02
-BioGPT-Large,biogpt_base,min_k_20_logprob,descriptive,200,-16.132413082,198,196,0.01,0.01,0.4041,0.05,0.13581015157406195,False,,,-0.04
-BioGPT-Large,biogpt_base,mean_logprob,descriptive,200,-6.626947825,181,181,0.0,0.0,0.4426,0.05,0.13581015157406195,False,,,-0.04
-BioGPT-Large Lamini,biogpt_adapted,min_k_20_logprob,primary_MIN-K20,200,-11.304104336,121,66,0.275,0.275,0.6717,0.05,0.13581015157406195,True,0.14802071873007983,True,0.04
-BioGPT-Large Lamini,biogpt_adapted,mean_logprob,exploratory_mean,200,-5.3240739575,136,101,0.175,0.175,0.5698,0.05,0.13581015157406195,True,0.14802071873007983,True,-0.065

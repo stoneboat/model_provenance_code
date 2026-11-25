@@ -1,5 +1,0 @@
-model,checkpoint,score,fitted_threshold,eval_per_source,member_source_accepted,nonmember_source_accepted,signed_advantage,absolute_advantage,alpha,rejection_cutoff,rejected,auc
-BioGPT-Large,c6a5136a91c5e3150d9f05ab9d33927a3210a22e,min_k_20_logprob,-16.132413082,200,198,196,0.01,0.01,0.05,0.13581015157406195,False,0.404125
-BioGPT-Large,c6a5136a91c5e3150d9f05ab9d33927a3210a22e,mean_logprob,-6.626947825,200,181,181,0.0,0.0,0.05,0.13581015157406195,False,0.442625
-Pythia-1.4B step0,ae04bdc1923b877cf65aee9da264d30555f011ab,min_k_20_logprob,-11.714882263,200,41,29,0.06,0.06,0.05,0.13581015157406195,False,0.564537
-Pythia-1.4B step0,ae04bdc1923b877cf65aee9da264d30555f011ab,mean_logprob,-10.992432973,200,98,89,0.045,0.045,0.05,0.13581015157406195,False,0.55855

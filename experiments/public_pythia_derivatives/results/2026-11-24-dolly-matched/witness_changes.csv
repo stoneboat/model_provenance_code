@@ -1,7 +1,0 @@
-comparison,score,change,ci_lower,ci_upper,seed,draws,examples_per_source
-Pythia adaptation minus base,min_k_20_logprob,0.005,-0.01,0.025,3324,10000,200
-Pythia adaptation minus base,mean_logprob,0.02,-0.035,0.075,3324,10000,200
-BioGPT adaptation minus base,min_k_20_logprob,0.24,0.145,0.335,3324,10000,200
-BioGPT adaptation minus base,mean_logprob,0.24,0.14,0.335,3324,10000,200
-Adapted Pythia minus adapted BioGPT,min_k_20_logprob,0.135,0.02,0.25,3324,10000,200
-Adapted Pythia minus adapted BioGPT,mean_logprob,0.17,0.065,0.28,3324,10000,200

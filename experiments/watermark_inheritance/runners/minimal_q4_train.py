@@ -1,4 +1,4 @@
-"""Train one fixed witness-budget family, or its one-epoch Dolly branch at a saved prefix."""
+"""Train one arm of the nine-epoch watermark witness-sharing experiment."""
 import argparse
 import hashlib
 import json
@@ -9,25 +9,16 @@ import time
 from experiments.watermark_inheritance.common import load_json, write_json
 from experiments.watermark_inheritance.train import train_stage
 
-TEMPLATE = Path("artifacts/m7vv_q4/train/A")
-FAMILIES = {
-    "bf16_lr1": ("fp32_master_bf16_autocast", 1e-5),
-    "bf16_lr5": ("fp32_master_bf16_autocast", 5e-5),
-    "head32_lr5": ("fp32_master_bf16_backbone_fp32_head", 5e-5),
-}
-PREFIXES = [1, 2, 3, 4, 6, 9, 12, 18, 24]
-
-
 def digest(path):
     with path.open("rb") as stream:
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
-def prepare(run, config, witness):
+def prepare(run, config, witness, prepared_inputs):
     prepared = run / "prepared"
     prepared.mkdir(parents=True, exist_ok=True)
-    for name, source in [("pairs.jsonl", witness), ("dolly.jsonl",TEMPLATE / "prepared/dolly.jsonl"),
-                         ("dolly_manifest.json",TEMPLATE / "prepared/dolly_manifest.json")]:
+    for name, source in [("pairs.jsonl", witness), ("dolly.jsonl",prepared_inputs / "dolly.jsonl"),
+                         ("dolly_manifest.json",prepared_inputs / "dolly_manifest.json")]:
         target = prepared / name
         if target.exists():
             if target.resolve() != source.resolve():
@@ -41,47 +32,45 @@ def prepare(run, config, witness):
 
 
 def run_stage(args):
-    if args.epoch not in PREFIXES:
-        raise ValueError(f"Expected one of {PREFIXES}")
-    config = load_json(TEMPLATE / "config.json")
-    config["seed"] = config["model_seed"] = args.seed
-    config["arm"] = args.family
-    run = args.root / args.family
-    parent = run / "checkpoints" / ("parent" if args.epoch == max(PREFIXES) else f"parent_epoch{args.epoch}")
+    publication = args.run_dir
+    protocol = load_json(publication / "protocol.json")
+    generation = load_json(publication / "config.json")
+    config = dict(protocol["training"])
+    epoch = config.pop("witness_epochs")
+    downstream = config.pop("downstream_epochs")
+    witness_lr = config.pop("witness_learning_rate")
+    cycle_epochs = config.pop("lr_cycle_epochs")
+    seed = protocol["branches"][args.arm]["model_seed"]
+    config.update(seed=seed, model_seed=seed, arm=args.arm,
+                  model_path=generation["model_path"], tokenizer_path=generation["tokenizer_path"],
+                  stage_epochs={"parent": epoch, "target": downstream})
+    branch = publication / "train" / args.arm
+    parent = branch / "checkpoints" / "parent"
+    run = branch
     if args.stage == "parent":
-        precision, lr = FAMILIES[args.family]
-        save_epochs = getattr(args, "checkpoint_epochs", None) or PREFIXES
-        if getattr(args, "save_only_requested", False):
-            save_epochs = [args.epoch]
-        config.update(precision=precision, learning_rate=lr, lr_cycle_epochs=3, save_epochs=save_epochs)
-        config["stage_epochs"]["parent"] = max(PREFIXES)
+        config.update(learning_rate=witness_lr, lr_cycle_epochs=cycle_epochs)
     else:
-        config.update(parent_checkpoint=str(parent.resolve()), parent_epoch=args.epoch,
-                      parent_weight_sha256=digest(parent/"model.safetensors"))
-        run = run / f"dolly_epoch{args.epoch}"
-    prepare(run, config, args.witness)
+        config.update(parent_checkpoint=str(parent.resolve()), parent_epoch=epoch,
+                      parent_weight_sha256=digest(parent / "model.safetensors"))
+        run = branch / "dolly"
+    prepared_inputs = publication / "prepared"
+    witness_name = "s_double_prime_train.jsonl" if args.arm == "C" else "s_train.jsonl"
+    prepare(run, config, prepared_inputs / witness_name, prepared_inputs)
     start = time.monotonic()
     begin_utc = datetime.now(timezone.utc).isoformat()
-    stats = train_stage(run, args.stage, "cuda:0", stop_epoch=args.epoch if args.stage=="parent" else 1)
+    stats = train_stage(run, args.stage, "cuda:0")
     final = parent if args.stage == "parent" else run/"checkpoints/target_epoch1"
-    log = dict(stage=args.stage, prefix_epoch=args.epoch, checkpoint=str(final), weights_sha256=digest(final/"model.safetensors"),
-               start_utc=begin_utc, wall_seconds=time.monotonic()-start, updates=stats["global_step"], seed=args.seed,
+    log = dict(stage=args.stage, prefix_epoch=epoch, checkpoint=str(final), weights_sha256=digest(final/"model.safetensors"),
+               start_utc=begin_utc, wall_seconds=time.monotonic()-start, updates=stats["global_step"], seed=seed,
                source_sha256=digest(Path(config["model_path"])/"model.safetensors") if args.stage=="parent" else config["parent_weight_sha256"],
                data_sha256=stats["identity"]["data_sha256"])
-    write_json(run / f"ledger_{args.stage}_epoch{args.epoch}.json", log)
+    write_json(run / "lineage.json", log)
     print(json.dumps(log))
 
 
 if __name__ == "__main__":
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("family", choices=FAMILIES)
-    parser.add_argument("stage", choices=["parent","target"])
-    parser.add_argument("epoch", type=int)
-    parser.add_argument("--root",type=Path,default=Path("artifacts/m7vv_minimal/search"))
-    parser.add_argument("--witness",type=Path,default=TEMPLATE/"prepared/pairs.jsonl")
-    parser.add_argument("--seed",type=int,default=34711)
-    parser.add_argument("--checkpoint-epochs", nargs="+", type=int, choices=PREFIXES,
-                        help="Fixed checkpoint boundaries across resumed calls on a common trajectory")
-    parser.add_argument("--save-only-requested", action="store_true",
-                        help="Keep only the selected witness prefix for independent confirmation")
+    parser.add_argument("arm", choices=["A", "B", "C"])
+    parser.add_argument("stage", choices=["parent", "target"])
+    parser.add_argument("--run-dir", type=Path, required=True)
     run_stage(parser.parse_args())

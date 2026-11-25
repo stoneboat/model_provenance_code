@@ -11,7 +11,10 @@ covers the exact 14 public derivatives reported there:
 | Pythia-6.9B | 5 |
 | Pythia-12B | 2 |
 
-The candidate shard is MIMIR GitHub. For every target, MIN-K 20% is calibrated
+The model roster and immutable checkpoint revisions are in
+[`run_audit.py`](runners/run_audit.py). The candidate shard is
+MIMIR GitHub (`iamgroot42/mimir`, revision
+`02500d3b7cece0cb7628e939ba9fc93fdb6362ae`, `ngram_13_0.2`). For every target, MIN-K 20% is calibrated
 on 560 secret-shard and 340 control-shard construction examples and evaluated
 on 400 held-out examples per shard. The level-0.05 reference threshold is
 `0.096`. The same split also audits each candidate parent as a positive sanity
@@ -56,7 +59,7 @@ For an interactive GPU allocation, the same pipeline can be run directly:
 ```bash
 .venv_pace/bin/python \
   experiments/public_pythia_derivatives/runners/run_audit.py \
-  --seeds 0 --batch-size 4 --dtype float16 --resume
+  --seeds 0 --batch-size 4 --dtype float16 --skip-unavailable --resume
 .venv_pace/bin/python \
   experiments/public_pythia_derivatives/reports/compile_results.py
 ```
@@ -66,16 +69,13 @@ scores, and model outputs remain under `artifacts/` and are not committed.
 
 The submitted `nnheui/pythia-1.4b-sft-full` result remains in the bundled
 table, but its original Hugging Face checkpoint is no longer available. The
-runner records that target explicitly and stops with a clear error rather than
-silently substituting a different archive.
+interactive command skips that entry explicitly. Without the skip flag the
+runner reports the missing weight files.
 
-## AISTATS 2027 split diagnostics and alternative scorer
+## Rebuttal experiments
 
-The completed matched run already stores both MIN-K 20% and mean log
-probability for every example, so the scorer comparison requires no new model
-inference. The observed summary and exact commands for the structural,
-lexical, duplicate, and frozen-embedding two-sample diagnostics are in
-[`results/2026-11-23-aistats27-q3/`](results/2026-11-23-aistats27-q3/).
-
-The diagnostics can reveal measured shift; they cannot prove that the MIMIR
-training and validation sources are exchangeable or establish exact lineage.
+- [Matched Pythia/GPT-Neo Lamini runs and reference controls](results/rebuttal-public-controls/README.md)
+  support qmGv Q1/Q3 and oT8R Q3. They use a separate frozen 500/200 per-source
+  MIMIR split.
+- [Alternative-scorer comparison](results/2026-11-23-aistats27-q3/README.md)
+  supports qmGv Q3 and uses a matched 340/400 per-source MIMIR split.

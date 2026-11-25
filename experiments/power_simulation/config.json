@@ -1,0 +1,8 @@
+{
+  "alpha": 0.05,
+  "conditional_advantage": 0.1,
+  "sample_sizes": [400, 1600, 8000],
+  "simulations": 10000,
+  "seed": 3324,
+  "case_id": 16
+}

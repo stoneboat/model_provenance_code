@@ -1,7 +1,0 @@
-target,detector,primary,ancestor_P,exclusion_holds_by_design,training_shard,construction_pairs,evaluation_pairs,score_threshold,accepted_S,accepted_S_prime,signed_advantage,absolute_advantage,alpha,paired_critical_value,rejects,exact_swap_p,positive_discordances,negative_discordances
-A,watermark,True,True,True,S,400,1600,0.00011251450473993518,965,974,-0.005625,0.005625,0.05,0.06790507578703098,False,0.7724193947830611,378,387
-A,min_k20,False,True,True,S,400,1600,-8.833910428560698,807,633,0.10875,0.10875,0.05,0.06790507578703098,True,1.1118602348797078e-10,450,276
-B,watermark,True,False,False,S,400,1600,1.3936858949038355,243,255,-0.0075,0.0075,0.05,0.06790507578703098,False,0.586095723372244,198,210
-B,min_k20,False,False,False,S,400,1600,-8.693885216346153,1090,822,0.1675,0.1675,0.05,0.06790507578703098,True,7.544237412433874e-24,494,226
-C,watermark,True,False,True,S_double_prime,400,1600,-0.38732359849210884,1197,1209,-0.0075,0.0075,0.05,0.06790507578703098,False,0.646177899902672,281,293
-C,min_k20,False,False,True,S_double_prime,400,1600,-8.802234356219952,997,1014,-0.010625,0.010625,0.05,0.06790507578703098,False,0.5577737259483083,364,381

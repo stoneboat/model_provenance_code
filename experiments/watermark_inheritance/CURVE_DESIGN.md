@@ -48,5 +48,3 @@ independent hypothesis tests.
   scored.
 - The tiny-model integration test verifies that interrupted and uninterrupted
   trajectories produce identical weights and exposure accounting.
-- The paper figure includes only steps complete for all three targets and all
-  three controls and shows mean ± one sample standard deviation.

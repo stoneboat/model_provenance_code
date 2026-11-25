@@ -108,13 +108,14 @@ def test_centered_logit_variance_uses_population_variance() -> None:
     assert shifted_score.item() == pytest.approx(actual.item(), abs=1e-6)
 
 
-def test_only_submitted_experiment_packages_remain() -> None:
+def test_only_paper_and_rebuttal_experiment_packages_remain() -> None:
     names = {
         path.name
         for path in (ROOT / "experiments").iterdir()
         if path.is_dir() and not path.name.startswith("__")
     }
     assert names == {
+        "power_simulation",
         "public_pythia_derivatives",
         "pythia_int8_quantization",
         "vit_provenance",

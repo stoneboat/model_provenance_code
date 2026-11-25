@@ -23,12 +23,7 @@ sys.path.insert(0, str(ROOT))
 from src.shard_audit.scoring.logprobs import extract_token_logprobs
 from src.shard_audit.scoring.mia_scores import compute_all_scores
 
-DESIGN = ROOT / "experiments/public_pythia_derivatives/results/2026-11-24-lamini-design/protocol.yaml"
-BASE_SCORES = {
-    "pythia": "artifacts/pile_controls_reconstruction/20261124T160154122852Z/parent_EleutherAI__pythia-1.4b",
-    "biogpt": "artifacts/biogpt_large_mimir",
-    "gpt_neo": "artifacts/pile_controls_reconstruction/20261124T160154122852Z/independent_EleutherAI__gpt-neo-1.3B",
-}
+PROTOCOL = ROOT / "experiments/public_pythia_derivatives/configs/matched_lamini.yaml"
 DEVICE = torch.device("cuda:0")
 
 
@@ -39,8 +34,7 @@ def write_json(path, value):
 
 
 def load_base(base, dtype, training=False):
-    # HF's case-sensitive on-disk cache has the complete BioGPT snapshot under its lower-case ID.
-    model_id = base["model"].replace("microsoft/BioGPT-Large", "microsoft/biogpt-large")
+    model_id = base["model"]
     source = dict(revision=base["revision"], local_files_only=True)
     config = AutoConfig.from_pretrained(model_id, **source)
     if training:
@@ -155,7 +149,7 @@ def train(model_key, cfg, tokenizer, examples, out):
 
 
 @torch.no_grad()
-def check_zero_export(model_key, cfg, tokenizer, out):
+def check_zero_export(model_key, cfg, tokenizer, out, construction, base_scores):
     """Perform the same FP32 merge/FP16 cast with zero LoRA and reproduce cached base scores."""
     base = cfg["bases"][model_key]
     model = new_adapter(load_base(base, torch.float32), base, cfg["fine_tuning"])
@@ -170,9 +164,9 @@ def check_zero_export(model_key, cfg, tokenizer, out):
         model = AutoModelForCausalLM.from_pretrained(
             scratch, torch_dtype=torch.float16, device_map={"": DEVICE}, local_files_only=True
         ).eval()
-    with (ROOT / cfg["witness_audit"]["inputs"] / "train.jsonl").open() as f:
+    with construction.open() as f:
         rows = [json.loads(next(f)) for _ in range(4)]
-    with (ROOT / BASE_SCORES[model_key] / "train_scores.jsonl").open() as f:
+    with base_scores.open() as f:
         cached = [json.loads(next(f)) for _ in rows]
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token = tokenizer.eos_token
@@ -192,10 +186,10 @@ def check_zero_export(model_key, cfg, tokenizer, out):
 
 
 @torch.no_grad()
-def export_final(model_key, cfg, tokenizer, out):
+def export_final(model_key, cfg, tokenizer, out, construction, base_scores):
     started = time.perf_counter()
     base = cfg["bases"][model_key]
-    check_zero_export(model_key, cfg, tokenizer, out)
+    check_zero_export(model_key, cfg, tokenizer, out, construction, base_scores)
     gc.collect()
     torch.cuda.empty_cache()
     model = PeftModel.from_pretrained(load_base(base, torch.float32), str(out / "adapter"))
@@ -211,15 +205,17 @@ def export_final(model_key, cfg, tokenizer, out):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--model", choices=("pythia", "biogpt", "gpt_neo"), required=True)
+    parser.add_argument("--model", choices=("pythia", "gpt_neo"), required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--data-dir", type=Path, help="Optional directory containing the pinned downstream release")
-    parser.add_argument("--protocol", type=Path, default=DESIGN)
+    parser.add_argument("--data-dir", type=Path, required=True, help="Directory with the pinned Lamini parquet files.")
+    parser.add_argument("--protocol", type=Path, default=PROTOCOL)
+    parser.add_argument("--construction", type=Path, required=True)
+    parser.add_argument("--base-scores", type=Path, required=True)
     parser.add_argument("--export-only", action="store_true", help="Export a completed adapter without retraining")
     args = parser.parse_args()
     cfg = yaml.safe_load(args.protocol.read_text())
     base = cfg["bases"][args.model]
-    model_id = base["model"].replace("microsoft/BioGPT-Large", "microsoft/biogpt-large")
+    model_id = base["model"]
     tokenizer = AutoTokenizer.from_pretrained(model_id, revision=base["revision"], local_files_only=True)
     if type(tokenizer).__name__ != base["tokenizer_class"] or tokenizer.padding_side != "right":
         raise ValueError("Expected pinned native tokenizer with right padding")
@@ -228,21 +224,13 @@ def main():
     if (out / "merged").exists() or (not args.export_only and (out / "training_trace.jsonl").exists()):
         raise FileExistsError("Output contains a previous run; choose a fresh directory or use --export-only")
     if not args.export_only:
-        data = lamini_data
-        data_dir = args.data_dir or ROOT / "artifacts/lamini_design"
-        if cfg["training_data"]["dataset"] == "databricks/databricks-dolly-15k":
-            import dolly_data as data
-            data_dir = args.data_dir or ROOT / "artifacts/dolly_matched/data"
-            preflight = json.loads((data_dir / f"{args.model}_preflight.json").read_text())
-            counts = {key: preflight[key] for key in ("input_tokens", "supervised_tokens", "max_input_length")}
-            cfg["training_data"]["expected_counts_per_epoch"] = {args.model: counts}
-        rows = data.load_split(data_dir, "train")
-        examples = [data.encode_row(r, tokenizer) for r in rows]
+        rows = lamini_data.load_split(args.data_dir, "train")
+        examples = [lamini_data.encode_row(row, tokenizer) for row in rows]
         write_json(out / "effective_train_config.json", cfg)
         train(args.model, cfg, tokenizer, examples, out)
         gc.collect()
         torch.cuda.empty_cache()
-    export_final(args.model, cfg, tokenizer, out)
+    export_final(args.model, cfg, tokenizer, out, args.construction, args.base_scores)
     print(f"Completed {args.model}: {out}", flush=True)
 
 

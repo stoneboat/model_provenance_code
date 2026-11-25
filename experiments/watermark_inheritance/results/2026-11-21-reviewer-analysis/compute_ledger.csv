@@ -1,8 +1,0 @@
-component,status,gpus,gpu_type,elapsed_or_estimate,gpu_hours,storage_gb,basis
-submitted_controlled_main,observed,2,H200,01:58:04,3.934,,job_history.json
-new_Dolly_controls,estimated,,H200,,7.2,,submitted throughput plus added direct-base controls
-new_UltraChat_controls,estimated,,H200,,9.0,,submitted continuous-training throughput
-new_total,estimated,,H200,,16.2,110,planning range 12-24 GPU-hours
-new_production_this_session,not_run,,,,0,0,scheduler accounting unavailable and pilot gate not passed
-submitted_controlled_scorer_caches,observed_reconstructed_operation_count,,,60 checkpoint caches,,,150000 model forward passes; watermark and MIN-K20 share 1.2 million queried sequences and all passes
-public_matched_audit,estimated,,H200,12-36 hours,12-36,,44400 sequences; 20720 configured-batch forward passes; max 22732800 input tokens

@@ -14,11 +14,6 @@ Run on an allocated GPU node, for example:
     python experiments/public_pythia_derivatives/runners/run_audit.py \
       --seeds 0 --batch-size 4 --dtype float16
 
-After checking that seed 0 works, launch all pre-specified splits:
-
-    python experiments/public_pythia_derivatives/runners/run_audit.py \
-      --seeds 0,1,2 --batch-size 4 --dtype float16 --resume
-
 The companion compiler is:
 
     python experiments/public_pythia_derivatives/reports/compile_results.py
@@ -144,7 +139,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-words", type=int, default=8)
     # MIMIR GitHub yields 963 usable member snippets after the required
     # 64-word preprocessing and deduplication.  560 + 400 therefore fits;
-    # the paper's nominal 600 + 400 does not fit this validated source.
+    # the submitted 560 + 400 split fits this source.
     parser.add_argument("--calibration-members", type=int, default=560)
     parser.add_argument("--calibration-nonmembers", type=int, default=340)
     parser.add_argument("--heldout-per-class", type=int, default=400)
@@ -152,6 +147,9 @@ def parse_args() -> argparse.Namespace:
                         help="Skip a step when its expected output already exists")
     parser.add_argument("--skip-nonmember-control", action="store_true",
                         help="Skip the nonmember-vs-nonmember target controls")
+
+    parser.add_argument("--skip-unavailable", action="store_true",
+                        help="Skip only roster entries with unavailable pinned weights")
     parser.add_argument("--prepare-only", action="store_true",
                         help="Prepare every requested seed, then exit before model scoring")
     parser.add_argument("--skip-prepare", action="store_true",
@@ -163,8 +161,13 @@ def run(command: list[str], expected: Path | None, *, resume: bool) -> None:
     if resume and expected and expected.exists():
         print(f"[resume] exists: {expected}", flush=True)
         return
-    print("\n+ " + " ".join(command), flush=True)
-    subprocess.run(command, cwd=REPO_ROOT, check=True)
+    display = list(command)
+    if "--token" in display:
+        display[display.index("--token") + 1] = "<redacted>"
+    print("\n+ " + " ".join(display), flush=True)
+    result = subprocess.run(command, cwd=REPO_ROOT)
+    if result.returncode:
+        raise SystemExit(f"{display[1]} failed with status {result.returncode}")
 
 
 def prepare_data(args: argparse.Namespace, seed: int, seed_root: Path) -> tuple[Path, Path]:
@@ -297,6 +300,9 @@ def main() -> None:
                 parent_results=None, is_target=False,
             )
             for target in family.targets:
+                if args.skip_unavailable and MODEL_REVISIONS[target] is None:
+                    print(f"Skipping unavailable submitted target: {target}", flush=True)
+                    continue
                 score_and_audit(
                     args, seed=seed, seed_root=seed_root, model=target,
                     main_data=main_data, control_data=control_data,

@@ -17,6 +17,7 @@ The exact submitted values are versioned in
 Submit the complete six-target experiment:
 
 ```bash
+mkdir -p experiments/pythia_int8_quantization/logs
 sbatch experiments/pythia_int8_quantization/jobs/run_paper_targets.sbatch
 ```
 
@@ -35,6 +36,7 @@ reports/pythia_int8_quantization.csv
 reports/pythia_int8_quantization.md
 ```
 
-`jobs/smoke_int8_loader.sbatch` is a two-example numerical preflight.
-`jobs/run_int8_robustness.sbatch` is a focused single-target diagnostic using
-the same runner; neither is a separate paper experiment.
+The [runner](runners/run_int8_robustness.py) pins the model checkpoints
+and MIMIR dataset revision. See [INT8 settings](configs/int8.yaml) for
+the split, representation, and scoring parameters. The submitted values
+range from 0.140 to 0.458 and all six cross the reference threshold.

@@ -1,7 +1,0 @@
-{
-  "updated_utc": "2026-11-25T01:13:13.362624+00:00",
-  "unconditional_nine_epoch": true,
-  "primary_per_target_cutoff": 0.06790507578703098,
-  "six_primary_bonferroni_cutoff": 0.08276955149194351,
-  "note": "two pre-fixed independent three-arm replications; report every primary outcome"
-}

@@ -1,0 +1,29 @@
+{
+  "dataset": "iamgroot42/mimir",
+  "revision": "02500d3b7cece0cb7628e939ba9fc93fdb6362ae",
+  "config": "github",
+  "split": "ngram_13_0.2",
+  "raw_counts": {
+    "member": 1000,
+    "nonmember": 740
+  },
+  "eligible_unique_counts": {
+    "member": 963,
+    "nonmember": 740
+  },
+  "construction": {
+    "member": 340,
+    "nonmember": 340
+  },
+  "evaluation": {
+    "member": 400,
+    "nonmember": 400
+  },
+  "generated_manifest_sha256": "996b6f726ed8cb3fbdf3255bcb4bf5def1ddd279080070aed65fa669fd918359",
+  "matching_covariates": [
+    "word_count",
+    "char_count",
+    "line_count",
+    "code_symbol_fraction"
+  ]
+}

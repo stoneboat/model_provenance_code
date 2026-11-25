@@ -1,84 +1,68 @@
-# ViT provenance-witness audit
+# ViT provenance-witness audits
 
-This package corresponds to Section 5.2.2 and the submitted paper's ViT
-results:
+Section 5.2.2, Table 3, and Appendix D.3 use ImageNet-1K training and
+validation shards to audit the parent, six public derivatives, and a
+randomly initialized ViT. Appendix D.4 applies the same audit to
+transformed encoder checkpoints. The DeiT control supports qmGv Q3 and
+oT8R Q2/Q3.
 
-- main-paper Table 3;
-- Appendix D.3 Table 8, public ViT derivatives; and
-- Appendix D.4 Table 9, model transformations.
+## Public derivatives
 
-The candidate parent is `google/vit-base-patch16-224`. The secret and control
-shards are drawn from ImageNet-1K training and validation images over 77
-classes. Construction and evaluation are disjoint; held-out evaluation has 25
-images per class from each shard, so `m = 1,925` and the level-0.05 threshold is
-`0.0438`.
+The [launcher](jobs/run_public_derivatives.sbatch) pins the parent
+`google/vit-base-patch16-224` and six public derivative revisions.
+The [preparation](runners/prepare_shards.py) uses
+`evanarlian/imagenet_1k_resized_256` at
+`8de107e08d1f61884d5a4ec2dea8740667264a60`, with seed 0 and
+77 classes. It selects 25 images per class and source for each of the
+disjoint construction and evaluation splits. Held-out \(m=1,925\) per
+source gives a level-0.05 reference cutoff of 0.0438.
+[Audit settings](configs/clv.yaml)
 
-The black-box centered-logit-variance (CLV) scorer queries each target under
-eight fixed deterministic weak views. It centers log probabilities within each
-view and reports the negative population variance across views, averaged over
-the target's output classes. It uses only output score vectors—never weights,
-activations, the parent classifier head, or ground-truth labels.
-
-## Public derivatives (Appendix Table 8)
-
-Run the parent reference, six public derivatives, and random-initialization
-sanity check:
+The centered-logit-variance (CLV) scorer queries each target on eight
+fixed weak views, centers the log-probability vectors by view, and uses
+negative population variance across views averaged over the output
+classes. It uses the complete output vectors. Labels are unnecessary
+to compute the CLV score.
 
 ```bash
-python scripts/setup/validate_experiment_config.py \
-  experiments/vit_provenance/configs/clv.yaml
+mkdir -p experiments/vit_provenance/logs
 sbatch experiments/vit_provenance/jobs/run_public_derivatives.sbatch
 ```
 
-Site-specific scheduler settings can be supplied through normal `sbatch`
-overrides such as `--account` and `--partition`. Generated files are written to
-`artifacts/vit_provenance/public_derivatives_seed0/`.
+The [submitted Table 8](results/submitted_table_8.csv) reports detections
+for all six derivatives, with gaps from 0.1029 to 0.1288. The parent has
+0.0810 and the random-initialization control 0.0062. An archived rerun
+with the repository's pinned reconstruction gave smaller advantages
+and different decisions. Exact replication needs the original image
+identities and run artifacts. The launcher writes a new CSV to
+`artifacts/vit_provenance/public_derivatives_seed0/reports/`.
 
-The submitted values are versioned in
-[`results/submitted_table_8.csv`](results/submitted_table_8.csv).
+## Transformations
 
-## Model transformations (Appendix Table 9)
+[Submitted Table 9](results/submitted_table_9.csv) reports detections for
+Linear Soup, TIES, DARE-TIES and SLERP, 8/4/3-bit simulated weight
+quantization, and magnitude pruning through 70%. At 90% pruning the gap
+was 0.0369. All transformations use the CIFAR-10 derivative as the
+baseline and the same ImageNet CLV protocol.
 
-The submitted transformation values are versioned in
-[`results/submitted_table_9.csv`](results/submitted_table_9.csv). They cover
-Linear Soup, TIES, DARE-TIES, SLERP, simulated 8/4/3-bit quantization, and
-30/50/70/90% magnitude pruning of the CIFAR-10 derivative.
-
-No transformation-construction source was present in this repository or in the
-teammate repository used to recover the watermark experiment. The submitted
-PDF does not specify the three exact merge inputs or all merge hyperparameters,
-so this cleanup does not invent a purportedly exact reproduction job. The CLV
-audit implementation and fixed evaluation protocol are shared with Table 8 and
-are available here; reconstructing the transformed checkpoints requires the
-original run configuration.
-
-## AISTATS 2027 train/validation diagnostics
-
-After preparing the exact class-balanced split above, run measured split
-diagnostics with:
+The saved source omits the original transformed checkpoints, the exact
+three merge inputs, and complete merge, quantization and pruning settings.
+Given an original checkpoint and the prepared shards, run the shared
+score and threshold audit on the local checkpoint directory.
 
 ```bash
-sbatch experiments/vit_provenance/jobs/run_split_diagnostics.sbatch
+root=artifacts/vit_provenance
+data="$root/public_derivatives_seed0/prepared/imagenet_shard"
+out="$root/local_transformed_audit"
+python experiments/vit_provenance/scoring/score_clv.py \
+  --target-model "$TRANSFORMED_CHECKPOINT" --train-file "$data/train.jsonl" \
+  --test-file "$data/test.jsonl" --output-dir "$out/scores"
+python scripts/audit/run_threshold_audit.py --model-label "Transformed ViT" \
+  --train-scores "$out/scores/train_scores.jsonl" --test-scores "$out/scores/test_scores.jsonl" \
+  --score-keys clv_score --primary-score clv_score --output-dir "$out/results"
 ```
 
-This compares class balance, dimensions, brightness, contrast, color, exact
-and perceptual duplicates, and a held-out linear classifier on frozen CLIP
-embeddings. Embeddings are cached for resume. The runner refuses to substitute
-another image source when the prepared split is absent. These checks can find
-measured shift but cannot prove equality or exchangeability.
+## Independent DeiT control
 
-## AISTATS 2027 independent ImageNet hard negative
-
-The Reviewer 3 Q2 control uses Meta's independently published ImageNet-1K
-DeiT-Base checkpoint against the exact public-ViT split and CLV audit:
-
-```bash
-sbatch -A gts-vzikas3 --export=ALL,HARD_NEGATIVE_MODE=smoke \
-  experiments/vit_provenance/jobs/run_hard_negative.sbatch
-sbatch -A gts-vzikas3 experiments/vit_provenance/jobs/run_hard_negative.sbatch
-```
-
-Both model and data revisions are pinned. The runner supports stage-level
-resume and refuses to substitute a different split. See
-`results/2026-11-23-hard-negative/README.md` for the prespecified
-interpretation and result status.
+The separately trained ImageNet-1K DeiT-Base checkpoint gives a signed
+advantage of 0.0083 against the same 0.0438 cutoff. [Revision, settings, and commands](results/2026-11-23-hard-negative/README.md)

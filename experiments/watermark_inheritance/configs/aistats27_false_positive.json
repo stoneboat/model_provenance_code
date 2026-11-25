@@ -4,43 +4,119 @@
   "primary_score": "watermark",
   "alpha": 0.05,
   "dolly_units": [
-    {"unit": "unit_00", "model_seed": 21001, "shard_seed": 31001, "watermark_key": 401, "wrong_key": 900401},
-    {"unit": "unit_01", "model_seed": 21002, "shard_seed": 31002, "watermark_key": 409, "wrong_key": 900409},
-    {"unit": "unit_02", "model_seed": 21003, "shard_seed": 31003, "watermark_key": 419, "wrong_key": 900419},
-    {"unit": "unit_03", "model_seed": 21004, "shard_seed": 31004, "watermark_key": 421, "wrong_key": 900421},
-    {"unit": "unit_04", "model_seed": 21005, "shard_seed": 31005, "watermark_key": 431, "wrong_key": 900431},
-    {"unit": "unit_05", "model_seed": 21006, "shard_seed": 31006, "watermark_key": 433, "wrong_key": 900433},
-    {"unit": "unit_06", "model_seed": 21007, "shard_seed": 31007, "watermark_key": 439, "wrong_key": 900439},
-    {"unit": "unit_07", "model_seed": 21008, "shard_seed": 31008, "watermark_key": 443, "wrong_key": 900443},
-    {"unit": "unit_08", "model_seed": 21009, "shard_seed": 31009, "watermark_key": 449, "wrong_key": 900449},
-    {"unit": "unit_09", "model_seed": 21010, "shard_seed": 31010, "watermark_key": 457, "wrong_key": 900457},
-    {"unit": "unit_10", "model_seed": 21011, "shard_seed": 31011, "watermark_key": 461, "wrong_key": 900461},
-    {"unit": "unit_11", "model_seed": 21012, "shard_seed": 31012, "watermark_key": 463, "wrong_key": 900463}
+    {
+      "unit": "unit_00",
+      "model_seed": 21001,
+      "shard_seed": 31001,
+      "watermark_key": 401,
+      "wrong_key": 900401
+    },
+    {
+      "unit": "unit_01",
+      "model_seed": 21002,
+      "shard_seed": 31002,
+      "watermark_key": 409,
+      "wrong_key": 900409
+    },
+    {
+      "unit": "unit_02",
+      "model_seed": 21003,
+      "shard_seed": 31003,
+      "watermark_key": 419,
+      "wrong_key": 900419
+    },
+    {
+      "unit": "unit_03",
+      "model_seed": 21004,
+      "shard_seed": 31004,
+      "watermark_key": 421,
+      "wrong_key": 900421
+    },
+    {
+      "unit": "unit_04",
+      "model_seed": 21005,
+      "shard_seed": 31005,
+      "watermark_key": 431,
+      "wrong_key": 900431
+    },
+    {
+      "unit": "unit_05",
+      "model_seed": 21006,
+      "shard_seed": 31006,
+      "watermark_key": 433,
+      "wrong_key": 900433
+    },
+    {
+      "unit": "unit_06",
+      "model_seed": 21007,
+      "shard_seed": 31007,
+      "watermark_key": 439,
+      "wrong_key": 900439
+    },
+    {
+      "unit": "unit_07",
+      "model_seed": 21008,
+      "shard_seed": 31008,
+      "watermark_key": 443,
+      "wrong_key": 900443
+    },
+    {
+      "unit": "unit_08",
+      "model_seed": 21009,
+      "shard_seed": 31009,
+      "watermark_key": 449,
+      "wrong_key": 900449
+    },
+    {
+      "unit": "unit_09",
+      "model_seed": 21010,
+      "shard_seed": 31010,
+      "watermark_key": 457,
+      "wrong_key": 900457
+    },
+    {
+      "unit": "unit_10",
+      "model_seed": 21011,
+      "shard_seed": 31011,
+      "watermark_key": 461,
+      "wrong_key": 900461
+    },
+    {
+      "unit": "unit_11",
+      "model_seed": 21012,
+      "shard_seed": 31012,
+      "watermark_key": 463,
+      "wrong_key": 900463
+    }
   ],
   "ultrachat_units": [
-    {"unit": "run_00", "model_seed": 22001, "shard_seed": 32001, "watermark_key": 503, "wrong_key": 900503},
-    {"unit": "run_01", "model_seed": 22002, "shard_seed": 32002, "watermark_key": 509, "wrong_key": 900509},
-    {"unit": "run_02", "model_seed": 22003, "shard_seed": 32003, "watermark_key": 521, "wrong_key": 900521}
+    {
+      "unit": "run_00",
+      "model_seed": 22001,
+      "shard_seed": 32001,
+      "watermark_key": 503,
+      "wrong_key": 900503
+    },
+    {
+      "unit": "run_01",
+      "model_seed": 22002,
+      "shard_seed": 32002,
+      "watermark_key": 509,
+      "wrong_key": 900509
+    },
+    {
+      "unit": "run_02",
+      "model_seed": 22003,
+      "shard_seed": 32003,
+      "watermark_key": 521,
+      "wrong_key": 900521
+    }
   ],
-  "compute_plan": {
-    "observed_submitted_h200_gpu_hours": 3.934,
-    "observed_scope": "three generated shards; parent, target, and Dolly control training; 18 checkpoint prediction caches",
-    "estimated_new_dolly_h200_gpu_hours": 7.2,
-    "estimated_new_ultrachat_400k_h200_gpu_hours": 9.0,
-    "estimated_total_h200_gpu_hours": 16.2,
-    "planning_range_h200_gpu_hours": [12.0, 24.0],
-    "estimated_new_checkpoint_storage_gb": 110,
-    "pilot_gate": "run one short Dolly direct-base control; validate UltraChat continuation logic with tiny tests and the submitted completed run; revise estimates before releasing arrays"
-  },
   "precision_plan": {
     "dolly_independent_units_after_completion": 12,
     "dolly_zero_alarm_one_sided_95_percent_upper": 0.220922,
     "ultrachat_independent_units_after_completion": 3,
     "ultrachat_zero_alarm_one_sided_95_percent_upper": 0.631597,
     "note": "Cross-audits and checkpoint repeats share a model or shard and are not additional independent trials."
-  },
-  "alternate_private_stage_controls": {
-    "scheduled": false,
-    "reason": "Independent model-shard units provide more false-alarm precision per GPU-hour; add only after the pilot if the main controls fit below the lower compute estimate."
   }
 }

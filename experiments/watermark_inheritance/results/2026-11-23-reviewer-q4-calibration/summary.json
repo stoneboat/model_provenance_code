@@ -1,43 +1,4 @@
 {
-  "status": "observed_cpu_reanalysis_of_frozen_per_example_caches",
-  "config": {
-    "study_id": "aistats27_reviewer3_q4_calibration",
-    "analysis_seed": 20261123,
-    "alpha_values": [
-      0.01,
-      0.025,
-      0.05,
-      0.1
-    ],
-    "sample_sizes": [
-      250,
-      500,
-      1000,
-      2000,
-      4000,
-      8000
-    ],
-    "contamination_rates": [
-      0.0,
-      0.05,
-      0.1,
-      0.2,
-      0.4
-    ],
-    "subsample_replicates": 25,
-    "primary_alpha": 0.05,
-    "primary_sample_size": 8000,
-    "primary_model_endpoints": {
-      "dolly": "C3",
-      "ultrachat_controls": "UC12500"
-    },
-    "fresh_shard_endpoints": {
-      "dolly": "C3"
-    },
-    "contamination_mechanism": "Within each selected held-out pair, replace the second/control-side binary decision with the first/witness-side decision for exactly floor(rate*m) pairs selected by a fixed seed. This models witness examples leaking into the control side and can only set selected paired differences to zero.",
-    "decision_rule": "Reject when absolute paired mean decision difference is strictly greater than sqrt(2*log(2/alpha)/m).",
-    "independence_policy": "Only the 15 primary endpoint model-seed/shard-seed units are independent model-control trials. The six fresh-shard audits are a separate family. Subsamples and checkpoint repeats remain clustered by model seed and shard seed."
-  },
   "primary_model_controls": {
     "events": 0,
     "trials": 15,
@@ -47,39 +8,6 @@
     "two_sided_upper": 0.218019360910534,
     "one_sided_upper": 0.18103627252208462
   },
-  "fresh_shard_controls": {
-    "events": 0,
-    "trials": 6,
-    "frequency": 0.0,
-    "confidence": 0.95,
-    "two_sided_lower": 0.0,
-    "two_sided_upper": 0.45925812643990044,
-    "one_sided_upper": 0.39303776899708265
-  },
-  "exact_sign_test_diagnostic": {
-    "model_controls_unadjusted_rejections": 1,
-    "model_controls_holm_rejections": 0,
-    "fresh_shard_unadjusted_rejections": 0,
-    "fresh_shard_holm_rejections": 0,
-    "note": "The manuscript's prespecified verdict uses the conservative paired advantage cutoff. Exact sign-test results are retained as a diagnostic."
-  },
-  "checkpoint_reuse": {
-    "cached_audits": 54,
-    "model_shard_clusters": 15,
-    "primary_false_alarms_unadjusted": 0,
-    "primary_false_alarms_bonferroni": 0,
-    "holm_exact_rejections": 0,
-    "interpretation": "The 54 checkpoint rows are correlated repeats from 15 model/shard clusters, not 54 independent false-positive trials."
-  },
-  "shared_witness_cross_model_audit": {
-    "status": "unrun",
-    "reason": "The frozen reviewer caches contain one independent shard per independently trained model. Auditing multiple independently trained models on the identical witness shard would require new model inference."
-  },
-  "contamination": {
-    "mechanism": "Within each selected held-out pair, replace the second/control-side binary decision with the first/witness-side decision for exactly floor(rate*m) pairs selected by a fixed seed. This models witness examples leaking into the control side and can only set selected paired differences to zero.",
-    "interpretation": "This is a fixed, non-adversarial attenuation sensitivity. It does not cover semantic contamination or independently chosen adversarial replacements."
-  },
-  "independence": "Only the 15 primary endpoint model-seed/shard-seed units are independent model-control trials. The six fresh-shard audits are a separate family. Subsamples and checkpoint repeats remain clustered by model seed and shard seed.",
   "input_manifest": [
     {
       "path": "artifacts/watermark_inheritance/aistats27_reviewer/dolly/unit_00/scores/C3/examples.jsonl",
@@ -230,36 +158,6 @@
       "path": "artifacts/watermark_inheritance/aistats27_reviewer/ultrachat_controls/run_02/scores/UC12500/thresholds.json",
       "sha256": "571838236b8783265919665c1c31a167ca20d726b82d5cf754f16a22e4027a77",
       "bytes": 800
-    },
-    {
-      "path": "artifacts/watermark_inheritance/aistats27_reviewer/dolly/unit_00/null_scores/C3/examples.jsonl",
-      "sha256": "3a76610aa7808bf52805d0f595010aa26e262b40bc093867a3d2dfec37865133",
-      "bytes": 1066304
-    },
-    {
-      "path": "artifacts/watermark_inheritance/aistats27_reviewer/dolly/unit_01/null_scores/C3/examples.jsonl",
-      "sha256": "ec528a5caa93e5dfc067a7c4f4241df4deda406301b820a221aed68e46f3d32a",
-      "bytes": 1066595
-    },
-    {
-      "path": "artifacts/watermark_inheritance/aistats27_reviewer/dolly/unit_02/null_scores/C3/examples.jsonl",
-      "sha256": "4d994167c27d3d8970543a3b2ba9cf39dd54a17d06f66f5a210ebe943058577e",
-      "bytes": 1066812
-    },
-    {
-      "path": "artifacts/watermark_inheritance/aistats27_reviewer/dolly/unit_03/null_scores/C3/examples.jsonl",
-      "sha256": "0efc6ab778a7a6fa9f00c369078a8fa9d3d67486b3648fcbf4359faff0d30750",
-      "bytes": 1067297
-    },
-    {
-      "path": "artifacts/watermark_inheritance/aistats27_reviewer/dolly/unit_04/null_scores/C3/examples.jsonl",
-      "sha256": "a351301d0f98e2087a6b95ef55a5279e7e5b15860e3234fe5d4584a40b98ab59",
-      "bytes": 1067155
-    },
-    {
-      "path": "artifacts/watermark_inheritance/aistats27_reviewer/dolly/unit_05/null_scores/C3/examples.jsonl",
-      "sha256": "ea6096182432d04e89e4b4109c4dccc21df131e1ac6505b6ef2b771b10a1491d",
-      "bytes": 1067281
     }
   ]
 }

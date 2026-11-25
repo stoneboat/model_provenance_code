@@ -34,7 +34,6 @@ fi
 conda activate "$ENV_DIR"
 PYTHON="$ENV_DIR/bin/python"
 test -x "$PYTHON"
-PYTHON="$PYTHON" bash scripts/cluster/ensure_split_diagnostic_deps.sh
 
 export HF_HOME="${HF_HOME:-$REPO_ROOT/.cache/huggingface}"
 export HF_HUB_CACHE="${HF_HUB_CACHE:-$HF_HOME}"
