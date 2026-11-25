@@ -1,0 +1,297 @@
+{
+  "checkpoint": "A",
+  "precision": "bfloat16",
+  "cpu_backend": "sdpa",
+  "rows": [
+    {
+      "pair_id": "pair_00000",
+      "side": "s",
+      "offset": 0,
+      "expected_input_length": 64,
+      "cached_gpu_top1": 285,
+      "prefix_only_cpu_top1": 285,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00000",
+      "side": "s",
+      "offset": 1,
+      "expected_input_length": 65,
+      "cached_gpu_top1": 5170,
+      "prefix_only_cpu_top1": 2406,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00000",
+      "side": "s",
+      "offset": 7,
+      "expected_input_length": 71,
+      "cached_gpu_top1": 1373,
+      "prefix_only_cpu_top1": 1373,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00000",
+      "side": "s",
+      "offset": 255,
+      "expected_input_length": 319,
+      "cached_gpu_top1": 253,
+      "prefix_only_cpu_top1": 253,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00000",
+      "side": "s_prime",
+      "offset": 0,
+      "expected_input_length": 64,
+      "cached_gpu_top1": 285,
+      "prefix_only_cpu_top1": 285,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00000",
+      "side": "s_prime",
+      "offset": 1,
+      "expected_input_length": 65,
+      "cached_gpu_top1": 11936,
+      "prefix_only_cpu_top1": 11936,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00000",
+      "side": "s_prime",
+      "offset": 7,
+      "expected_input_length": 71,
+      "cached_gpu_top1": 13575,
+      "prefix_only_cpu_top1": 13575,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00000",
+      "side": "s_prime",
+      "offset": 255,
+      "expected_input_length": 319,
+      "cached_gpu_top1": 964,
+      "prefix_only_cpu_top1": 964,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00001",
+      "side": "s",
+      "offset": 0,
+      "expected_input_length": 64,
+      "cached_gpu_top1": 34,
+      "prefix_only_cpu_top1": 34,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00001",
+      "side": "s",
+      "offset": 1,
+      "expected_input_length": 65,
+      "cached_gpu_top1": 14,
+      "prefix_only_cpu_top1": 8,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00001",
+      "side": "s",
+      "offset": 7,
+      "expected_input_length": 71,
+      "cached_gpu_top1": 253,
+      "prefix_only_cpu_top1": 253,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00001",
+      "side": "s",
+      "offset": 255,
+      "expected_input_length": 319,
+      "cached_gpu_top1": 15,
+      "prefix_only_cpu_top1": 15,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00001",
+      "side": "s_prime",
+      "offset": 0,
+      "expected_input_length": 64,
+      "cached_gpu_top1": 34,
+      "prefix_only_cpu_top1": 34,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00001",
+      "side": "s_prime",
+      "offset": 1,
+      "expected_input_length": 65,
+      "cached_gpu_top1": 8,
+      "prefix_only_cpu_top1": 8,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00001",
+      "side": "s_prime",
+      "offset": 7,
+      "expected_input_length": 71,
+      "cached_gpu_top1": 253,
+      "prefix_only_cpu_top1": 253,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00001",
+      "side": "s_prime",
+      "offset": 255,
+      "expected_input_length": 319,
+      "cached_gpu_top1": 13,
+      "prefix_only_cpu_top1": 13,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00002",
+      "side": "s",
+      "offset": 0,
+      "expected_input_length": 64,
+      "cached_gpu_top1": 1445,
+      "prefix_only_cpu_top1": 34486,
+      "cpu_logit_deficit_of_cached": 4.0
+    },
+    {
+      "pair_id": "pair_00002",
+      "side": "s",
+      "offset": 1,
+      "expected_input_length": 65,
+      "cached_gpu_top1": 275,
+      "prefix_only_cpu_top1": 275,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00002",
+      "side": "s",
+      "offset": 7,
+      "expected_input_length": 71,
+      "cached_gpu_top1": 13,
+      "prefix_only_cpu_top1": 13,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00002",
+      "side": "s",
+      "offset": 255,
+      "expected_input_length": 319,
+      "cached_gpu_top1": 247,
+      "prefix_only_cpu_top1": 247,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00002",
+      "side": "s_prime",
+      "offset": 0,
+      "expected_input_length": 64,
+      "cached_gpu_top1": 1445,
+      "prefix_only_cpu_top1": 34486,
+      "cpu_logit_deficit_of_cached": 4.0
+    },
+    {
+      "pair_id": "pair_00002",
+      "side": "s_prime",
+      "offset": 1,
+      "expected_input_length": 65,
+      "cached_gpu_top1": 13,
+      "prefix_only_cpu_top1": 13,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00002",
+      "side": "s_prime",
+      "offset": 7,
+      "expected_input_length": 71,
+      "cached_gpu_top1": 2170,
+      "prefix_only_cpu_top1": 4055,
+      "cpu_logit_deficit_of_cached": 4.0
+    },
+    {
+      "pair_id": "pair_00002",
+      "side": "s_prime",
+      "offset": 255,
+      "expected_input_length": 319,
+      "cached_gpu_top1": 247,
+      "prefix_only_cpu_top1": 247,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00008",
+      "side": "s",
+      "offset": 0,
+      "expected_input_length": 64,
+      "cached_gpu_top1": 310,
+      "prefix_only_cpu_top1": 310,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00008",
+      "side": "s",
+      "offset": 1,
+      "expected_input_length": 65,
+      "cached_gpu_top1": 247,
+      "prefix_only_cpu_top1": 247,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00008",
+      "side": "s",
+      "offset": 7,
+      "expected_input_length": 71,
+      "cached_gpu_top1": 247,
+      "prefix_only_cpu_top1": 281,
+      "cpu_logit_deficit_of_cached": 4.0
+    },
+    {
+      "pair_id": "pair_00008",
+      "side": "s",
+      "offset": 255,
+      "expected_input_length": 319,
+      "cached_gpu_top1": 403,
+      "prefix_only_cpu_top1": 273,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00008",
+      "side": "s_prime",
+      "offset": 0,
+      "expected_input_length": 64,
+      "cached_gpu_top1": 310,
+      "prefix_only_cpu_top1": 310,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00008",
+      "side": "s_prime",
+      "offset": 1,
+      "expected_input_length": 65,
+      "cached_gpu_top1": 247,
+      "prefix_only_cpu_top1": 247,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00008",
+      "side": "s_prime",
+      "offset": 7,
+      "expected_input_length": 71,
+      "cached_gpu_top1": 253,
+      "prefix_only_cpu_top1": 253,
+      "cpu_logit_deficit_of_cached": 0.0
+    },
+    {
+      "pair_id": "pair_00008",
+      "side": "s_prime",
+      "offset": 255,
+      "expected_input_length": 319,
+      "cached_gpu_top1": 481,
+      "prefix_only_cpu_top1": 481,
+      "cpu_logit_deficit_of_cached": 0.0
+    }
+  ],
+  "exact_top1_matches": 25,
+  "n": 32
+}

@@ -102,7 +102,8 @@ def _identity(config: dict, data_path: Path, stage: str) -> dict:
     return {"schema": 1, "stage": stage, "data_sha256": _digest(data_path),
             "config_sha256": hashlib.sha256(json.dumps(config, sort_keys=True,
                 separators=(",", ":")).encode()).hexdigest(),
-            "loss": "completion_token_mean_valid_tokenizer_vocab", "precision": "fp32_master_bf16_autocast"}
+            "loss": "completion_token_mean_valid_tokenizer_vocab",
+            "precision": config.get("precision", "fp32_master_bf16_autocast")}
 
 
 def _checkpoint_name(stage: str, epoch: int, epochs: int) -> str:
@@ -165,7 +166,8 @@ def _write_checkpoint(destination: Path, model, tokenizer, metadata: dict,
         raise
 
 
-def train_stage(run_dir: Path, stage: str, device: str = "cuda", max_steps: int | None = None) -> dict:
+def train_stage(run_dir: Path, stage: str, device: str = "cuda", max_steps: int | None = None,
+                stop_epoch: int | None = None) -> dict:
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
     from .common import load_config, load_json, read_jsonl, write_json
@@ -183,14 +185,23 @@ def train_stage(run_dir: Path, stage: str, device: str = "cuda", max_steps: int 
     identity = _identity(config, data_path, stage)
     if stage != "parent":
         manifest = load_json(run_dir / "prepared" / "dolly_manifest.json")
-        if not manifest.get("overlap_checked", False):
+        if config.get("dolly_selection") == "fixed_source_rows":
+            if (manifest.get("selection") != "fixed_source_rows"
+                    or manifest.get("output_file_sha256") != identity["data_sha256"]
+                    or manifest.get("selection_seed") != config["dolly_selection_seed"]
+                    or manifest.get("dataset_revision") != config["dolly_revision"]):
+                raise ValueError("Dolly file differs from the independently fixed selection")
+        elif not manifest.get("overlap_checked", False):
             raise ValueError("Dolly training requires an overlap check against the complete generated shard")
-        if (manifest.get("pair_file_sha256") != _digest(run_dir / "prepared" / "pairs.jsonl") or
+        elif (manifest.get("pair_file_sha256") != _digest(run_dir / "prepared" / "pairs.jsonl") or
                 manifest.get("output_file_sha256") != identity["data_sha256"]):
             raise ValueError("Dolly overlap manifest does not match current pairs/Dolly files")
-    epochs = int(config.get("epochs", 3))
+    epochs = int(config.get("stage_epochs", {}).get(stage, config.get("epochs", 3)))
     if epochs < 1:
         raise ValueError("epochs must be positive")
+    last_epoch = epochs if stop_epoch is None else stop_epoch
+    if not 1 <= last_epoch <= epochs:
+        raise ValueError("Requested stopping epoch is outside the planned stage")
     checkpoint_root = run_dir / "checkpoints"
     checkpoint_root.mkdir(parents=True, exist_ok=True)
     latest, previous_metadata = None, None
@@ -204,6 +215,12 @@ def train_stage(run_dir: Path, stage: str, device: str = "cuda", max_steps: int 
         if metadata["epoch"] != epoch or metadata["global_step"] != metadata["expected_steps_per_epoch"] * epoch:
             raise ValueError(f"Checkpoint epoch/step mismatch: {candidate}")
         latest, previous_metadata = candidate, metadata
+    if stop_epoch is not None and previous_metadata and previous_metadata["epoch"] >= last_epoch:
+        requested = checkpoint_root / _checkpoint_name(stage, last_epoch, epochs)
+        requested_state = load_json(requested / "stage_state.json")
+        if requested_state["identity"] != identity or not requested_state["epoch_complete"]:
+            raise ValueError(f"Requested epoch identity/completion mismatch: {requested}")
+        return requested_state
     if previous_metadata and previous_metadata["epoch"] == epochs:
         if not previous_metadata.get("complete", False):
             raise ValueError(f"Final checkpoint is not complete: {latest}")
@@ -212,11 +229,24 @@ def train_stage(run_dir: Path, stage: str, device: str = "cuda", max_steps: int 
         return previous_metadata
     source = str(latest) if latest else config["model_path"]
     if stage == "target" and latest is None:
-        parent_path = checkpoint_root / "parent"
-        parent_state = load_json(parent_path / "stage_state.json")
-        parent_identity = _identity(config, run_dir / "prepared" / "pairs.jsonl", "parent")
-        if parent_state.get("identity") != parent_identity or not parent_state.get("complete", False):
-            raise ValueError("Target requires a completed parent with the same immutable configuration")
+        if "parent_checkpoint" in config:
+            parent_path = Path(config["parent_checkpoint"])
+            parent_dir = parent_path.parent.parent
+            parent_config = load_config(parent_dir)
+            parent_identity = _identity(parent_config, run_dir / "prepared" / "pairs.jsonl", "parent")
+            parent_state = load_json(parent_path / "stage_state.json")
+            if not parent_state.get("epoch_complete") or parent_state["epoch"] != config["parent_epoch"]:
+                raise ValueError("Expected a completed witness epoch for the planned Dolly branch")
+            if _digest(parent_path / "model.safetensors") != config["parent_weight_sha256"]:
+                raise ValueError("Dolly branch source weight digest changed")
+        else:
+            parent_path = checkpoint_root / "parent"
+            parent_state = load_json(parent_path / "stage_state.json")
+            parent_identity = _identity(config, run_dir / "prepared" / "pairs.jsonl", "parent")
+            if not parent_state.get("complete", False):
+                raise ValueError("Target requires a completed parent")
+        if parent_state.get("identity") != parent_identity:
+            raise ValueError("Parent configuration or witness data mismatch")
         source = str(parent_path)
     tokenizer = AutoTokenizer.from_pretrained(config.get("tokenizer_path", config["model_path"]), local_files_only=True)
     if tokenizer.pad_token_id is None:
@@ -255,12 +285,16 @@ def train_stage(run_dir: Path, stage: str, device: str = "cuda", max_steps: int 
     optimizer = torch.optim.AdamW(model.parameters(), lr=float(config.get("learning_rate", 1e-5)),
                                  weight_decay=float(config.get("weight_decay", 0.01)),
                                  fused=str(device).startswith("cuda"))
-    warmup = math.ceil(total_steps * float(config.get("warmup_ratio", 0.03)))
+    cycle_epochs = config.get("lr_cycle_epochs")
+    schedule_steps = int(cycle_epochs) * steps_per_epoch if cycle_epochs else total_steps
+    warmup = math.ceil(schedule_steps * float(config.get("warmup_ratio", 0.03)))
 
     def lr_multiplier(step):
+        if cycle_epochs:
+            step %= schedule_steps
         if step < warmup:
             return float(step) / max(1, warmup)
-        progress = (step - warmup) / max(1, total_steps - warmup)
+        progress = (step - warmup) / max(1, schedule_steps - warmup)
         return max(0.0, 0.5 * (1.0 + math.cos(math.pi * progress)))
 
     scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_multiplier)
@@ -290,7 +324,9 @@ def train_stage(run_dir: Path, stage: str, device: str = "cuda", max_steps: int 
                       "rows": len(examples), "response_tokens_per_epoch": sum(row["response_tokens"] for row in examples),
                       "steps_per_epoch": steps_per_epoch, "micro_batch": micro_batch,
                       "effective_batch": effective_batch, "resume_epoch": first_epoch}), flush=True)
-    for epoch in range(first_epoch, epochs + 1):
+    high_precision_head = config.get("precision") == "fp32_master_bf16_backbone_fp32_head"
+    saved_epochs = config.get("save_epochs", [])
+    for epoch in range(first_epoch, last_epoch + 1):
         epoch_start = time.monotonic()
         epoch_tokens, epoch_examples, epoch_loss, epoch_input_tokens = 0, 0, 0.0, 0
         generator = torch.Generator().manual_seed(stage_seed + epoch)
@@ -302,7 +338,13 @@ def train_stage(run_dir: Path, stage: str, device: str = "cuda", max_steps: int 
                 chunk = [examples[i] for i in indices]
                 inputs, labels = collate(chunk, tokenizer.pad_token_id, device)
                 with torch.autocast(device_type="cuda" if is_cuda else "cpu", dtype=torch.bfloat16, enabled=is_cuda):
-                    logits = model(**inputs, use_cache=False).logits
+                    if high_precision_head:
+                        hidden = model.gpt_neox(**inputs, use_cache=False).last_hidden_state
+                        with torch.autocast(device_type=device.split(":")[0], enabled=False):
+                            logits = model.embed_out(hidden.float())
+                        del hidden
+                    else:
+                        logits = model(**inputs, use_cache=False).logits
                     loss_sum = valid_vocab_loss(logits, labels, vocab_size)
                     loss = loss_sum / batch_response_tokens
                 loss.backward()
@@ -354,6 +396,9 @@ def train_stage(run_dir: Path, stage: str, device: str = "cuda", max_steps: int 
                     "micro_batch_size": micro_batch, "history": history,
                     "loss_description": "training-set completion/response token mean; not held-out performance",
                     "max_memory_allocated": torch.cuda.max_memory_allocated(device) if is_cuda else None}
+        if not complete and config.get("save_final_only", False) and epoch not in saved_epochs and epoch != last_epoch:
+            print(json.dumps({"event": "epoch_complete", "stage": stage, **epoch_metrics}), flush=True)
+            continue
         destination = checkpoint_root / _checkpoint_name(stage, epoch, epochs)
         save_start = time.monotonic()
         _write_checkpoint(destination, model, tokenizer, metadata,

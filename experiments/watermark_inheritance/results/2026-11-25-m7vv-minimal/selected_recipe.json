@@ -1,0 +1,72 @@
+{
+  "frozen_utc": "2026-11-25T00:48:33.812013+00:00",
+  "family": "bf16_lr5",
+  "witness_epoch_prefix": 1,
+  "witness_updates": 63,
+  "peak_lr": 5e-05,
+  "schedule": "first epoch of the 3-epoch 189-step cosine schedule, ceil(3%*189) warmup (6 steps); no rescaling to a 63-step cycle",
+  "precision": "FP32 master weights, BF16 autocast",
+  "Dolly": {
+    "rows": 512,
+    "updates": 16,
+    "peak_lr": 1e-05
+  },
+  "lower_ranked_candidates_checked": [
+    "bf16_lr1_e1_dolly"
+  ],
+  "first_candidate_results": {
+    "fit": {
+      "threshold": 0.8819755747001432,
+      "comparison": ">",
+      "calibration_pairs": 400,
+      "balanced_accuracy": 0.54375,
+      "tie_rule": "largest_threshold",
+      "direction": "larger_predicts_s"
+    },
+    "apparent_gap": 0.08750000000000002,
+    "auc": 0.53733125,
+    "mean_s": 0.3595684751399878,
+    "mean_s_prime": 0.2219475384076364,
+    "crossfit": [
+      {
+        "fit_fold": 0,
+        "threshold": 0.8819755747001432,
+        "gap": 0.03999999999999998
+      },
+      {
+        "fit_fold": 1,
+        "threshold": -0.4176836838934539,
+        "gap": 0.03500000000000003
+      }
+    ],
+    "twofold_gap": 0.037500000000000006
+  },
+  "selected_results": {
+    "fit": {
+      "threshold": -0.03670605559607969,
+      "comparison": ">",
+      "calibration_pairs": 400,
+      "balanced_accuracy": 0.57375,
+      "tie_rule": "largest_threshold",
+      "direction": "larger_predicts_s"
+    },
+    "apparent_gap": 0.14749999999999996,
+    "auc": 0.57088125,
+    "mean_s": 0.4846157239831595,
+    "mean_s_prime": 0.23302102366915078,
+    "crossfit": [
+      {
+        "fit_fold": 0,
+        "threshold": 0.03721629207602516,
+        "gap": 0.05499999999999994
+      },
+      {
+        "fit_fold": 1,
+        "threshold": -0.07284858902450202,
+        "gap": 0.19999999999999996
+      }
+    ],
+    "twofold_gap": 0.12749999999999995
+  },
+  "used_heldout_for_selection": false
+}

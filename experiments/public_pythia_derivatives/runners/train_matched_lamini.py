@@ -27,6 +27,7 @@ DESIGN = ROOT / "experiments/public_pythia_derivatives/results/2026-11-24-lamini
 BASE_SCORES = {
     "pythia": "artifacts/pile_controls_reconstruction/20261124T160154122852Z/parent_EleutherAI__pythia-1.4b",
     "biogpt": "artifacts/biogpt_large_mimir",
+    "gpt_neo": "artifacts/pile_controls_reconstruction/20261124T160154122852Z/independent_EleutherAI__gpt-neo-1.3B",
 }
 DEVICE = torch.device("cuda:0")
 
@@ -44,7 +45,7 @@ def load_base(base, dtype, training=False):
     config = AutoConfig.from_pretrained(model_id, **source)
     if training:
         for key in ("attention_dropout", "hidden_dropout", "attention_probs_dropout_prob",
-                    "hidden_dropout_prob", "activation_dropout", "layerdrop"):
+                    "hidden_dropout_prob", "activation_dropout", "layerdrop", "resid_dropout", "embed_dropout"):
             if hasattr(config, key):
                 setattr(config, key, 0.0)
         config.use_cache = False
@@ -210,7 +211,7 @@ def export_final(model_key, cfg, tokenizer, out):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--model", choices=("pythia", "biogpt"), required=True)
+    parser.add_argument("--model", choices=("pythia", "biogpt", "gpt_neo"), required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--data-dir", type=Path, help="Optional directory containing the pinned downstream release")
     parser.add_argument("--protocol", type=Path, default=DESIGN)

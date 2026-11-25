@@ -1,0 +1,16 @@
+{
+  "gpt_neo": {
+    "train": {
+      "separate_answer_plus_eos": {
+        "total_tokens": 78293
+      },
+      "rows": 1260
+    },
+    "test": {
+      "separate_answer_plus_eos": {
+        "total_tokens": 8576
+      },
+      "rows": 140
+    }
+  }
+}

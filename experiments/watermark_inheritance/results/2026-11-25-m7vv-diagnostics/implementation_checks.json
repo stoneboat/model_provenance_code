@@ -1,0 +1,19 @@
+{
+  "vocab_size": 50277,
+  "model_vocab": 50304,
+  "gamma_exact": 0.24999502754738748,
+  "green_size": 12569,
+  "ngram": 2,
+  "salt": 35317,
+  "key": 101,
+  "wrong_key": 900101,
+  "z_replays_verified": 12000,
+  "generated_rows": 6000,
+  "eligible_positions": 1269649,
+  "unique_contexts": 509060,
+  "token_to_id_map_identical_all_final_targets": true,
+  "original_generation_and_scoring_config_match": true,
+  "training_response_mask_alignment_verified": true,
+  "scoring_shift": "position len(prompt)-1+i predicts stored completion i",
+  "original_reading_score_bias": false
+}

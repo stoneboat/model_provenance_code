@@ -84,7 +84,7 @@ def paired_summary(before, after, counts, with_interval=False):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--model", choices=["pythia", "biogpt"], required=True)
+    parser.add_argument("--model", choices=["pythia", "biogpt", "gpt_neo"], required=True)
     parser.add_argument("--merged", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--data-dir", type=Path, help="Optional directory containing the pinned downstream release")
